@@ -7,7 +7,7 @@ import argparse
 from matplotlib.legend_handler import HandlerLine2D
 
 
-def read_json_file(json_file):
+def read_json_file(json_file, filter_data):
     print('Reading file ...')
     with open(json_file) as data_file:
         data = json.load(data_file)
@@ -33,6 +33,33 @@ def read_json_file(json_file):
             grouped_data[val['id'][1]][val['id'][2]][algo].append(val)
         else:
             grouped_data[val['id'][1]][val['id'][2]][val['id'][0]] = [val]
+
+    if filter_data:
+        print('Filtering data ...')
+
+        counter = {}
+        max_counter = 0
+        for domain, problems in grouped_data.items():
+            counter[domain] = {}
+            for problem, algos in problems.items():
+                if problem not in counter[domain]:
+                    counter[domain][problem] = 0
+                counter[domain][problem] += len(algos)
+                max_counter = max(max_counter, counter[domain][problem])
+        to_del = []
+        for domain, problems in grouped_data.items():
+            for problem, algos in problems.items():
+                if counter[domain][problem] < max_counter:
+                    to_del.append((domain, problem))
+        for domain, problem in to_del:
+            del grouped_data[domain][problem]
+        to_del = []
+        for domain, problems in grouped_data.items():
+            if len(grouped_data[domain]) == 0:
+                to_del.append(domain)
+        for domain in to_del:
+            del grouped_data[domain]
+
     return grouped_data
 
 
@@ -68,7 +95,7 @@ def print_summary(grouped_data, print_detail):
                 s = '{:<15}'.format('domain')
                 for algo in algos:
                     algo_order.append(algo)
-                    s += ' ' +  '{:<15}'.format(algo[:15])
+                    s += ' ' + '{:<15}'.format(algo[:15])
                 print(s)
             s = '{:<15}'.format(domain[:15])
             for algo in algo_order:
@@ -93,10 +120,15 @@ def print_summary(grouped_data, print_detail):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("json_file", help=".json file containing the lab data")
-    parser.add_argument("--detail", "-d", help=".json file containing the lab data", default=True)
+    parser.add_argument("--detail", "-d", help="print the detailed per domain data", dest='detail', action='store_true')
+    parser.add_argument("--filter", "-f", help="filter the intersection domains and problems only", dest='filter',
+                        action='store_true')
+    parser.set_defaults(detail=False)
+    parser.set_defaults(filter=False)
     args = parser.parse_args()
-    data = read_json_file(args.json_file)
+    data = read_json_file(args.json_file, args.filter)
     print_summary(data, args.detail)
+
 
 if __name__ == '__main__':
     main()
