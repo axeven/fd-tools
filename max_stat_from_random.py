@@ -87,7 +87,7 @@ def main():
     parser.set_defaults(problem=False)
     parser.set_defaults(filter=False)
     args = parser.parse_args()
-    data = read_json_file(args.json_file, args.filter)
+    data = read_json_file(args.json_file, args.filter, False)
     print_summary(data, args.domain, args.problem)
 
 

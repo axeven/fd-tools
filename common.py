@@ -2,7 +2,7 @@ import json
 import re
 
 
-def read_json_file(json_file, filter_data):
+def read_json_file(json_file, filter_data,  unsolvable_only):
     """
     Returns a dictionary in the following format: dict[domain][problem][algo] = [list of experiment data]
     the algo must have format "algo_name%d" where %d is an integer representing run_id for this algorithm
@@ -17,6 +17,8 @@ def read_json_file(json_file, filter_data):
     grouped_data = {}
     pattern = re.compile(r'(\d+)')
     for idx, val in data.items():
+        if unsolvable_only and val['unsolvable'] == 0:
+            continue
         if val['id'][1] not in grouped_data:
             grouped_data[val['id'][1]] = {}
         if val['id'][2] not in grouped_data[val['id'][1]]:
