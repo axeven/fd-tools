@@ -6,42 +6,7 @@ import argparse
 
 from matplotlib.legend_handler import HandlerLine2D
 from matplotlib.font_manager import FontProperties
-
-
-def read_json_file(json_file, unsolvable_only):
-    print('Reading file ...')
-    with open(json_file) as data_file:
-        data = json.load(data_file)
-
-    print('Grouping data ...')
-
-    # grouping data
-    grouped_data = {}
-    pattern = re.compile(r'(\d+)')
-    for idx, val in data.items():
-        if unsolvable_only and val['unsolvable'] == 0:
-            continue
-        if val['id'][1] not in grouped_data:
-            grouped_data[val['id'][1]] = {}
-        if val['id'][2] not in grouped_data[val['id'][1]]:
-            grouped_data[val['id'][1]][val['id'][2]] = {}
-
-        match = pattern.search(val['id'][0])
-        if match:
-            run_str = match.group(1)
-            algo = val['id'][0][0:len(val['id'][0]) - len(run_str)]
-            if algo == 'perfect-random':
-                algo = 'general random'
-            if algo == 'perfect-linear-random':
-                algo = 'linear random'
-            if algo == 'linear-random-relevant':
-                algo = 'relevant random'
-            if algo not in grouped_data[val['id'][1]][val['id'][2]]:
-                grouped_data[val['id'][1]][val['id'][2]][algo] = []
-            grouped_data[val['id'][1]][val['id'][2]][algo].append(val)
-        else:
-            grouped_data[val['id'][1]][val['id'][2]][val['id'][0]] = [val]
-    return grouped_data
+from common import read_json_file
 
 
 def create_cumulative_graph(grouped_data, OUTDIR, ATTR):
@@ -205,7 +170,8 @@ def main():
     parser.add_argument("json_file", help=".json file containing the lab data")
     parser.add_argument("--outfolder", "-o", help="output folder", default="output")
     parser.add_argument("--attribute", "-a", help="attribute to use", default="max_abstraction_states")
-    parser.add_argument("--unsolvable-only", "-u", help="only count the unsolvable instances", dest='unsolvable_only', action='store_true')
+    parser.add_argument("--unsolvable-only", "-u", help="only count the unsolvable instances", dest='unsolvable_only',
+                        action='store_true')
     parser.add_argument("--log", "-l", help='use log scaling on x axis', dest='log', action='store_true')
     parser.set_defaults(log=False)
     parser.set_defaults(unsolvable_only=False)
