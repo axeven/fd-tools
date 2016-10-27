@@ -19,8 +19,8 @@ def print_summary(grouped_data, print_detail_per_domain, print_detail_per_proble
                     temp['solvable'] = max(temp['solvable'], val['solvable'])
                 max_data[domain][problem][algo] = temp
 
+    algo_order = []
     if print_detail_per_problem:
-        algo_order = []
         for domain, problems in max_data.items():
             for problem, algos in problems.items():
                 if len(algo_order) == 0:
@@ -45,7 +45,6 @@ def print_summary(grouped_data, print_detail_per_domain, print_detail_per_proble
                         detail_data[domain][algo] = {'unsolvable': 0, 'solvable': 0}
                     detail_data[domain][algo]['unsolvable'] += attrs['unsolvable']
                     detail_data[domain][algo]['solvable'] += attrs['solvable']
-        algo_order = []
         for domain, algos in detail_data.items():
             if len(algo_order) == 0:
                 s = '{:<15}'.format('domain')
@@ -61,6 +60,9 @@ def print_summary(grouped_data, print_detail_per_domain, print_detail_per_proble
     print_data = {}
     for domain, problems in max_data.items():
         for problem, algos in problems.items():
+            if len(algo_order) == 0:
+                for algo in algos:
+                    algo_order.append(algo)
             for algo, val_list in algos.items():
                 if algo not in print_data:
                     print_data[algo] = {'unsolvable': 0, 'solvable': 0}
