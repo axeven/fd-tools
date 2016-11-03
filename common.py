@@ -15,27 +15,30 @@ def read_json_file(json_file, filter_data,  unsolvable_only):
 
     # grouping data
     grouped_data = {}
+    existing_problems = {}
     pattern = re.compile(r'(\d+)')
     for idx, val in data.items():
         if unsolvable_only and val['unsolvable'] == 0:
             continue
         if val['id'][1] not in grouped_data:
             grouped_data[val['id'][1]] = {}
+            existing_problems[val['id'][1]] = set()
         if val['id'][2] not in grouped_data[val['id'][1]]:
             grouped_data[val['id'][1]][val['id'][2]] = {}
+            existing_problems[val['id'][1]].add(val['id'][2])
 
         match = pattern.search(val['id'][0])
         if match:
             run_str = match.group(1)
             algo = val['id'][0][0:len(val['id'][0]) - len(run_str)]
             if algo == 'perfect-random' or algo == 'perfect-general-random':
-                algo = 'general random'
+                algo = 'general-random'
             if algo == 'perfect-linear-random':
-                algo = 'linear random'
+                algo = 'linear-random'
             if algo == 'linear-random-relevant' or algo == 'perfect-linear-relevant':
-                algo = 'linear relevant random'
+                algo = 'linear-relevant-random'
             if algo == 'perfect-dfp-random':
-                algo = 'dfp random'
+                algo = 'dfp-random'
             if algo not in grouped_data[val['id'][1]][val['id'][2]]:
                 grouped_data[val['id'][1]][val['id'][2]][algo] = []
             grouped_data[val['id'][1]][val['id'][2]][algo].append(val)
@@ -66,4 +69,4 @@ def read_json_file(json_file, filter_data,  unsolvable_only):
         for domain in to_del:
             del grouped_data[domain]
 
-    return grouped_data
+    return grouped_data, existing_problems
