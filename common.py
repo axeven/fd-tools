@@ -18,15 +18,16 @@ def read_json_file(json_file, filter_data,  unsolvable_only):
     existing_problems = {}
     pattern = re.compile(r'(\d+)')
     for idx, val in data.items():
+        if val['id'][1] not in grouped_data:
+            existing_problems[val['id'][1]] = set()
+            if not unsolvable_only or val['unsolvable'] == 1:
+                grouped_data[val['id'][1]] = {}
+        if val['id'][2] not in grouped_data[val['id'][1]]:
+            existing_problems[val['id'][1]].add(val['id'][2])
+            if not unsolvable_only or val['unsolvable'] == 1:
+                grouped_data[val['id'][1]][val['id'][2]] = {}
         if unsolvable_only and val['unsolvable'] == 0:
             continue
-        if val['id'][1] not in grouped_data:
-            grouped_data[val['id'][1]] = {}
-            existing_problems[val['id'][1]] = set()
-        if val['id'][2] not in grouped_data[val['id'][1]]:
-            grouped_data[val['id'][1]][val['id'][2]] = {}
-            existing_problems[val['id'][1]].add(val['id'][2])
-
         match = pattern.search(val['id'][0])
         if match:
             run_str = match.group(1)
@@ -68,5 +69,4 @@ def read_json_file(json_file, filter_data,  unsolvable_only):
                 to_del.append(domain)
         for domain in to_del:
             del grouped_data[domain]
-
     return grouped_data, existing_problems
