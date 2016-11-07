@@ -82,41 +82,32 @@ def get_cumulative_data_per_problem(grouped_data, ATTR):
 
     # processing data
     max_y = 0
-    graph_data = {}
+    cumu_data = {}
     for domain, problems in grouped_data.items():
-        graph_data[domain] = {}
+        cumu_data[domain] = {}
         for problem, algos in problems.items():
-            graph_data[domain][problem] = {}
+            cumu_data[domain][problem] = {}
             for algo, val_list in algos.items():
                 unsorted = []
                 for val in val_list:
                     unsorted.append(val[ATTR])
                 sorted_data = sorted(unsorted)
                 cumu = 1
-                graph_data[domain][problem][algo] = {'x': [], 'y': []}
+                cumu_data[domain][problem][algo] = {'x': [], 'y': []}
                 for x in sorted_data:
-                    graph_data[domain][problem][algo]['x'].append(x)
-                    graph_data[domain][problem][algo]['y'].append(cumu)
+                    cumu_data[domain][problem][algo]['x'].append(x)
+                    cumu_data[domain][problem][algo]['y'].append(cumu)
                     cumu += 1
                 max_y = max(cumu, max_y)
-    return graph_data, max_y
+    return cumu_data, max_y
 
 
-def create_cumulative_graph_separate(cumu_data, max_y, OUTDIR, ATTR, xlog_scale):
-    print('Creating graphs ...')
-
-    # plotting
-    fontP = FontProperties()
-    fontP.set_size('small')
-
+def get_plot_data_from_cumu(cumu_data, max_y):
+    graph_data = {}
     for domain, problems in cumu_data.items():
-        if not os.path.exists(OUTDIR + '/' + domain):
-            os.makedirs(OUTDIR + '/' + domain)
+        graph_data[domain] = {}
         for problem, algos in problems.items():
-            fig = plt.figure()
-            subplt = fig.add_subplot(111)
-            subplt.set_xlabel(ATTR)
-            subplt.set_ylabel('Cumulative count')
+            graph_data[domain][problem] = {}
             for algo, xy_data in algos.items():
                 x = xy_data['x']
                 y = xy_data['y']
@@ -124,9 +115,34 @@ def create_cumulative_graph_separate(cumu_data, max_y, OUTDIR, ATTR, xlog_scale)
                 y = [0] + y
                 if algo == 'base_unsat':
                     y[len(y) - 1] = max_y
-                    subplt.plot(x, y, label=algo, linestyle='--', linewidth=2)
+                graph_data[domain][problem][algo] = {'x': x, 'y': y}
+    return graph_data
+
+
+def create_dirs_if_necessary(graph_data, OUTDIR):
+    for domain, problems in graph_data.items():
+        if not os.path.exists(OUTDIR + '/' + domain):
+            os.makedirs(OUTDIR + '/' + domain)
+
+
+def create_cumulative_graph_separate(graph_data, OUTDIR, ATTR, xlog_scale):
+    print('Creating graphs ...')
+
+    # plotting
+    fontP = FontProperties()
+    fontP.set_size('small')
+
+    for domain, problems in graph_data.items():
+        for problem, algos in problems.items():
+            fig = plt.figure()
+            subplt = fig.add_subplot(111)
+            subplt.set_xlabel(ATTR)
+            subplt.set_ylabel('Cumulative count')
+            for algo, xy_data in algos.items():
+                if algo == 'base_unsat':
+                    subplt.plot(xy_data['x'], xy_data['y'], label=algo, linestyle='--', linewidth=2)
                 else:
-                    subplt.plot(x, y, label=algo)
+                    subplt.plot(xy_data['x'], xy_data['y'], label=algo)
                 subplt.grid(b=True, which='major', color='gray', linestyle='-')
                 subplt.minorticks_on()
                 subplt.grid(b=True, which='minor', color='gray')
@@ -137,7 +153,7 @@ def create_cumulative_graph_separate(cumu_data, max_y, OUTDIR, ATTR, xlog_scale)
                     subplt.set_xscale('linear')
                     subplt.get_xaxis().get_major_formatter().set_useOffset(False)
                     subplt.get_xaxis().get_major_formatter().set_scientific(False)
-                    if len(str(x[0])) > 5:
+                    if len(str(xy_data['x'][0])) > 5:
                         plt.setp(subplt.get_xticklabels(), rotation=30, horizontalalignment='right')
                 subplt.margins(0.05)
             plt.legend(handler_map={subplt: HandlerLine2D(numpoints=1)}, prop=fontP, loc='upper left')
@@ -184,8 +200,10 @@ def main():
     args = parser.parse_args()
     data, problems = read_json_file(args.json_file, args.filter, args.unsolvable_only)
     if check_attribute_exists(data, args.attribute):
-        cumu_data, max_y = get_cumulative_data_per_problem(data, args.attribute)
-        create_cumulative_graph_separate(cumu_data, max_y, args.outfolder, args.attribute, args.log)
+        data, max_y = get_cumulative_data_per_problem(data, args.attribute)
+        data = get_plot_data_from_cumu(data, max_y)
+        create_dirs_if_necessary(data, args.outfolder)
+        create_cumulative_graph_separate(data, args.outfolder, args.attribute, args.log)
 
 
 if __name__ == '__main__':
