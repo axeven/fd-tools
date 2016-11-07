@@ -77,8 +77,8 @@ def create_cumulative_graph(grouped_data, OUTDIR, ATTR):
     return
 
 
-def create_cumulative_graph_separate(grouped_data, OUTDIR, ATTR, xlog_scale):
-    print('Processing data ...')
+def get_cumulative_data_per_problem(grouped_data, ATTR):
+    print('Getting cumulative data per problem ...')
 
     # processing data
     max_y = 0
@@ -99,13 +99,17 @@ def create_cumulative_graph_separate(grouped_data, OUTDIR, ATTR, xlog_scale):
                     graph_data[domain][problem][algo]['y'].append(cumu)
                     cumu += 1
                 max_y = max(cumu, max_y)
+    return graph_data, max_y
+
+
+def create_cumulative_graph_separate(cumu_data, max_y, OUTDIR, ATTR, xlog_scale):
     print('Creating graphs ...')
 
     # plotting
     fontP = FontProperties()
     fontP.set_size('small')
 
-    for domain, problems in graph_data.items():
+    for domain, problems in cumu_data.items():
         if not os.path.exists(OUTDIR + '/' + domain):
             os.makedirs(OUTDIR + '/' + domain)
         for problem, algos in problems.items():
@@ -170,16 +174,18 @@ def main():
     parser.add_argument("json_file", help=".json file containing the lab data")
     parser.add_argument("--outfolder", "-o", help="output folder", default="output")
     parser.add_argument("--attribute", "-a", help="attribute to use", default="max_abstraction_states")
-    parser.add_argument("--unsolvable-only", "-u", help="only count the unsolvable instances", dest='unsolvable_only', action='store_true')
+    parser.add_argument("--unsolvable-only", "-u", help="only count the unsolvable instances", dest='unsolvable_only',
+                        action='store_true')
     parser.add_argument("--log", "-l", help='use log scaling on x axis', dest='log', action='store_true')
     parser.add_argument("--filter", "-f", help="filter the intersection domains and problems only", dest='filter',
                         action='store_true')
     parser.set_defaults(log=False)
     parser.set_defaults(unsolvable_only=False)
     args = parser.parse_args()
-    data = read_json_file(args.json_file, args.filter, args.unsolvable_only)
+    data, problems = read_json_file(args.json_file, args.filter, args.unsolvable_only)
     if check_attribute_exists(data, args.attribute):
-        create_cumulative_graph_separate(data, args.outfolder, args.attribute, args.log)
+        cumu_data, max_y = get_cumulative_data_per_problem(data, args.attribute)
+        create_cumulative_graph_separate(cumu_data, max_y, args.outfolder, args.attribute, args.log)
 
 
 if __name__ == '__main__':

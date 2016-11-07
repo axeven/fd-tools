@@ -22,7 +22,7 @@ def read_json_file(json_file, filter_data,  unsolvable_only):
             existing_problems[val['id'][1]] = set()
             if not unsolvable_only or val['unsolvable'] == 1:
                 grouped_data[val['id'][1]] = {}
-        if val['id'][2] not in grouped_data[val['id'][1]]:
+        if val['id'][1] in grouped_data and val['id'][2] not in grouped_data[val['id'][1]]:
             existing_problems[val['id'][1]].add(val['id'][2])
             if not unsolvable_only or val['unsolvable'] == 1:
                 grouped_data[val['id'][1]][val['id'][2]] = {}
