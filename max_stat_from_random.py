@@ -3,43 +3,6 @@ import argparse
 from common import read_json_file
 
 
-def print_summary(grouped_data, print_detail_per_domain, print_detail_per_problem):
-    print('Processing data ...')
-
-    # processing data
-    max_data = {}
-    for domain, problems in grouped_data.items():
-        max_data[domain] = {}
-        for problem, algos in problems.items():
-            max_data[domain][problem] = {}
-            for algo, val_list in algos.items():
-                temp = {'unsolvable': 0, 'solvable': 0}
-                for val in val_list:
-                    temp['unsolvable'] = max(temp['unsolvable'], val['unsolvable'])
-                    temp['solvable'] = max(temp['solvable'], val['solvable'])
-                max_data[domain][problem][algo] = temp
-
-    algo_order = []
-
-    print_data = {}
-    for domain, problems in max_data.items():
-        for problem, algos in problems.items():
-            if len(algo_order) == 0:
-                for algo in algos:
-                    algo_order.append(algo)
-            for algo, val_list in algos.items():
-                if algo not in print_data:
-                    print_data[algo] = {'unsolvable': 0, 'solvable': 0}
-                print_data[algo]['unsolvable'] += max_data[domain][problem][algo]['unsolvable']
-                print_data[algo]['solvable'] += max_data[domain][problem][algo]['solvable']
-
-    # printing
-    for algo in algo_order:
-        s = '{:<25}'.format(algo[:25])
-        print('%s:%d\t%d' % (s, print_data[algo]['unsolvable'], print_data[algo]['solvable']))
-    return
-
-
 def get_max_data(grouped_data, attr):
     max_data = {}
     for domain, problems in grouped_data.items():
@@ -136,27 +99,11 @@ def print_detail_per_domain(max_data, problem_list, order, latex):
             print(s)
 
 
-def print_summary_latex_format(grouped_data, problem_list, order, print_detail_per_domain, print_detail_per_problem):
-    print('Processing data ...')
-
-    # processing data
-    max_data = {}
-    for domain, problems in grouped_data.items():
-        max_data[domain] = {}
-        for problem, algos in problems.items():
-            max_data[domain][problem] = {}
-            for algo, val_list in algos.items():
-                temp = {'unsolvable': 0, 'solvable': 0}
-                for val in val_list:
-                    temp['unsolvable'] = max(temp['unsolvable'], val['unsolvable'])
-                    temp['solvable'] = max(temp['solvable'], val['solvable'])
-                max_data[domain][problem][algo] = temp
-
+def print_total_per_algo(max_data, order, latex):
     if order is None:
         algo_order = []
     else:
         algo_order = order
-
     print_data = {}
     for domain, problems in max_data.items():
         for problem, algos in problems.items():
@@ -165,15 +112,26 @@ def print_summary_latex_format(grouped_data, problem_list, order, print_detail_p
                     algo_order.append(algo)
             for algo, val_list in algos.items():
                 if algo not in print_data:
-                    print_data[algo] = {'unsolvable': 0, 'solvable': 0}
-                print_data[algo]['unsolvable'] += max_data[domain][problem][algo]['unsolvable']
-                print_data[algo]['solvable'] += max_data[domain][problem][algo]['solvable']
-
-    # printing
-    for algo in algo_order:
-        s = '{:<25}'.format(algo[:25])
-        print('%s:%d\t%d' % (s, print_data[algo]['unsolvable'], print_data[algo]['solvable']))
-    return
+                    print_data[algo] = 0
+                print_data[algo] += max_data[domain][problem][algo]
+    if latex:
+        s = ' '
+        for algo in algo_order:
+            s += ' & ' + algo
+        print(s + ' \\\\')
+        s = 'total'
+        for algo in algo_order:
+            s += ' & ' + str(print_data[algo])
+        print(s + ' \\\\')
+    else:
+        s = '{:<15}'.format(' ')
+        for algo in algos:
+            s += ' ' + '{:<15}'.format(algo[:15])
+        print(s)
+        s = '{:<15}'.format('total')
+        for algo in algo_order:
+            s += ' ' + str(print_data[algo]).rjust(15)
+        print(s)
 
 
 def main():
@@ -207,10 +165,7 @@ def main():
         print_detail_per_domain(max_data, problems, args.order, args.latex)
     if args.problem:
         print_detail_per_problem(max_data, args.order, args.latex)
-    if args.latex:
-        print_summary_latex_format(data, problems, args.order, args.domain, args.problem)
-    else:
-        print_summary(data, args.domain, args.problem)
+    print_total_per_algo(max_data, args.order, args.latex)
 
 
 if __name__ == '__main__':
