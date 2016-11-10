@@ -20,20 +20,6 @@ def print_summary(grouped_data, print_detail_per_domain, print_detail_per_proble
                 max_data[domain][problem][algo] = temp
 
     algo_order = []
-    if print_detail_per_problem:
-        for domain, problems in max_data.items():
-            for problem, algos in problems.items():
-                if len(algo_order) == 0:
-                    s = '{:<25}'.format('domain')
-                    for algo in algos:
-                        algo_order.append(algo)
-                        s += ' ' + '{:<15}'.format(algo[:15])
-                    print(s)
-                s = '{:<15}'.format(domain[:15])
-                s += '{:<10}'.format(problem[:10])
-                for algo in algo_order:
-                    s += ' ' + str(max_data[domain][problem][algo]['unsolvable']).rjust(15)
-                print(s)
 
     print_data = {}
     for domain, problems in max_data.items():
@@ -66,6 +52,44 @@ def get_max_data(grouped_data, attr):
                     temp = max(temp, val[attr])
                 max_data[domain][problem][algo] = temp
     return max_data
+
+
+def print_detail_per_problem(max_data, order, latex):
+    if order is None:
+        algo_order = []
+    else:
+        algo_order = order
+    header_printed = False
+    for domain in sorted(max_data.keys()):
+        problems = max_data[domain]
+        for problem, algos in problems.items():
+            if len(algo_order) == 0:
+                for algo in algos:
+                    algo_order.append(algo)
+            if not header_printed:
+                if latex:
+                    s = 'Domain:problem'
+                    for algo in algos:
+                        s += ' & ' + algo
+                    print(s + ' \\\\')
+                else:
+                    s = '{:<25}'.format('domain')
+                    for algo in algos:
+                        s += ' ' + '{:<15}'.format(algo[:15])
+                    print(s)
+                header_printed = True
+            if latex:
+                s = '{:<15}'.format(domain[:15])
+                s += '{:<10}'.format(problem[:10])
+                for algo in algo_order:
+                    s += ' & ' + str(max_data[domain][problem][algo])
+                print(s + ' \\\\')
+            else:
+                s = '{:<15}'.format(domain[:15])
+                s += '{:<10}'.format(problem[:10])
+                for algo in algo_order:
+                    s += ' ' + str(max_data[domain][problem][algo]).rjust(15)
+                print(s)
 
 
 def print_detail_per_domain(max_data, problem_list, order, latex):
@@ -132,21 +156,6 @@ def print_summary_latex_format(grouped_data, problem_list, order, print_detail_p
         algo_order = []
     else:
         algo_order = order
-    if print_detail_per_problem:
-        for domain in sorted(max_data.keys()):
-            problems = max_data[domain]
-            for problem, algos in problems.items():
-                if len(algo_order) == 0:
-                    s = 'Domain:problem'
-                    for algo in algos:
-                        algo_order.append(algo)
-                        s += ' & ' + algo
-                    print(s + ' \\\\')
-                s = '{:<15}'.format(domain[:15])
-                s += '{:<10}'.format(problem[:10])
-                for algo in algo_order:
-                    s += ' & ' + str(max_data[domain][problem][algo]['unsolvable'])
-                print(s + ' \\\\')
 
     print_data = {}
     for domain, problems in max_data.items():
@@ -170,7 +179,8 @@ def print_summary_latex_format(grouped_data, problem_list, order, print_detail_p
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("json_file", help=".json file containing the lab data")
-    parser.add_argument('--order', '-o', help='space separated string, the order of the algorithm column shown in the table',
+    parser.add_argument('--order', '-o',
+                        help='space separated string, the order of the algorithm column shown in the table',
                         type=str)
     parser.add_argument('--attribute', '-a',
                         help='the attribute to be computed and shown')
@@ -195,6 +205,8 @@ def main():
     max_data = get_max_data(data, args.attribute)
     if args.domain:
         print_detail_per_domain(max_data, problems, args.order, args.latex)
+    if args.problem:
+        print_detail_per_problem(max_data, args.order, args.latex)
     if args.latex:
         print_summary_latex_format(data, problems, args.order, args.domain, args.problem)
     else:
