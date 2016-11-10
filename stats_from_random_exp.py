@@ -17,6 +17,20 @@ def get_max_data(grouped_data, attr):
     return max_data
 
 
+def get_avg_data(grouped_data, attr):
+    avg_data = {}
+    for domain, problems in grouped_data.items():
+        avg_data[domain] = {}
+        for problem, algos in problems.items():
+            avg_data[domain][problem] = {}
+            for algo, val_list in algos.items():
+                temp = 0
+                for val in val_list:
+                    temp += val[attr]
+                avg_data[domain][problem][algo] = temp * 1.0 / len(val_list)
+    return avg_data
+
+
 def print_detail_per_problem(max_data, order, latex):
     if order is None:
         algo_order = []
@@ -150,10 +164,7 @@ def main():
                         action='store_true')
     parser.add_argument("--latex", "-l", help="use latex output format", dest='latex',
                         action='store_true')
-    parser.set_defaults(domain=False)
-    parser.set_defaults(problem=False)
-    parser.set_defaults(filter=False)
-    parser.set_defaults(latex=False)
+    parser.set_defaults(domain=False, problem=False, filter=False, latex=False)
     args = parser.parse_args()
 
     if args.order is not None:
