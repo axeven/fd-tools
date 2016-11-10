@@ -113,38 +113,69 @@ def print_detail_per_domain(max_data, problem_list, order, latex):
             print(s)
 
 
-def print_total_per_algo(max_data, order, latex):
+def print_total_per_algo(all_data, stats_order, order, latex):
     if order is None:
         algo_order = []
     else:
         algo_order = order
     print_data = {}
-    for domain, problems in max_data.items():
-        for problem, algos in problems.items():
-            if len(algo_order) == 0:
-                for algo in algos:
-                    algo_order.append(algo)
-            for algo, val_list in algos.items():
-                if algo not in print_data:
-                    print_data[algo] = 0
-                print_data[algo] += max_data[domain][problem][algo]
+    max_char = 0
+    for stat, data in all_data.items():
+        print_data[stat] = {}
+        for domain, problems in data.items():
+            for problem, algos in problems.items():
+                if len(algo_order) == 0:
+                    for algo in algos:
+                        algo_order.append(algo)
+                for algo, val_list in algos.items():
+                    if algo not in print_data[stat]:
+                        print_data[stat][algo] = 0
+                    print_data[stat][algo] += data[domain][problem][algo]
+        for algo, val in print_data[stat].items():
+            if isinstance(val, float):
+                max_char = max(max_char, len('{:.2f}'.format(val)))
+            else:
+                max_char = max(max_char, len(str(val)))
     if latex:
         s = ' '
+        t = ' '
         for algo in algo_order:
             s += ' & ' + algo
+            for stat in stats_order:
+                t += ' & ' + stat
         print(s + ' \\\\')
+        print(t + ' \\\\')
         s = 'total'
         for algo in algo_order:
-            s += ' & ' + str(print_data[algo])
+            for stats in stats_order:
+                if isinstance(print_data[stats][algo], float):
+                    s += ' & ' + '{:.2f}'.format(print_data[stats][algo])
+                else:
+                    s += ' & ' + str(print_data[stats][algo])
         print(s + ' \\\\')
     else:
-        s = '{:<15}'.format(' ')
-        for algo in algos:
-            s += ' ' + '{:<15}'.format(algo[:15])
-        print(s)
-        s = '{:<15}'.format('total')
+        old_max_char = max_char
+        max_char = max(max_char, 15)
+        col_len = max_char*len(all_data)+len(all_data)-1
+        while col_len >= 15 and max_char >= old_max_char:
+            max_char -= 1
+            col_len = max_char * len(all_data) + len(all_data) - 1
+        s = ('{:<'+str(len('total'))+'}').format(' ')
+        t = ('{:<'+str(len('total'))+'}').format(' ')
         for algo in algo_order:
-            s += ' ' + str(print_data[algo]).rjust(15)
+            s += ' ' + algo[:col_len].rjust(col_len)
+            for stat in stats_order:
+                t += ' ' + stat[:max_char].rjust(max_char)
+        print(s)
+        print(t)
+
+        s = 'total'
+        for algo in algo_order:
+            for stat in stats_order:
+                if isinstance(print_data[stat][algo], float):
+                    s += ' ' + ('{:.2f}'.format(print_data[stat][algo])).rjust(max_char)
+                else:
+                    s += ' ' + str(print_data[stat][algo]).rjust(max_char)
         print(s)
 
 
@@ -156,6 +187,8 @@ def main():
                         type=str)
     parser.add_argument('--attribute', '-a',
                         help='the attribute to be computed and shown')
+    parser.add_argument('--stats', '-s',
+                        help='the statistics to be shown. use & for multiple stats like max&avg', required=True)
     parser.add_argument("--domain-detail", "-d", help="print the detailed per domain data", dest='domain',
                         action='store_true')
     parser.add_argument("--problem-detail", "-p", help="print the detailed per problem data", dest='problem',
@@ -167,16 +200,31 @@ def main():
     parser.set_defaults(domain=False, problem=False, filter=False, latex=False)
     args = parser.parse_args()
 
+    supported = {
+        'max': get_max_data,
+        'avg': get_avg_data
+    }
+    stats = args.stats.split('&')
+    for s in stats:
+        if s not in supported:
+            print(s + ' is not supported.')
+            print('the supported stats are as follows:')
+            print(list(supported.keys()))
+            return
+
     if args.order is not None:
         args.order = args.order.split(' ')
 
-    data, problems = read_json_file(args.json_file, args.filter, False)
-    max_data = get_max_data(data, args.attribute)
+    raw_data, problems = read_json_file(args.json_file, args.filter, False)
+    data = {}
+    for s, f in supported.items():
+        if s in stats:
+            data[s] = f(raw_data, args.attribute)
     if args.domain:
-        print_detail_per_domain(max_data, problems, args.order, args.latex)
+        print_detail_per_domain(data, problems, args.order, args.latex)
     if args.problem:
-        print_detail_per_problem(max_data, args.order, args.latex)
-    print_total_per_algo(max_data, args.order, args.latex)
+        print_detail_per_problem(data, args.order, args.latex)
+    print_total_per_algo(data, stats, args.order, args.latex)
 
 
 if __name__ == '__main__':
