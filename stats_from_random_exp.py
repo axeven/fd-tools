@@ -31,42 +31,18 @@ def get_avg_data(grouped_data, attr):
     return avg_data
 
 
-def print_detail_per_problem(max_data, order, latex):
-    if order is None:
-        algo_order = []
-    else:
-        algo_order = order
-    header_printed = False
-    for domain in sorted(max_data.keys()):
-        problems = max_data[domain]
-        for problem, algos in problems.items():
-            if len(algo_order) == 0:
-                for algo in algos:
-                    algo_order.append(algo)
-            if not header_printed:
-                if latex:
-                    s = 'Domain:problem'
-                    for algo in algos:
-                        s += ' & ' + algo
-                    print(s + ' \\\\')
-                else:
-                    s = '{:<25}'.format('domain')
-                    for algo in algos:
-                        s += ' ' + '{:<15}'.format(algo[:15])
-                    print(s)
-                header_printed = True
-            if latex:
-                s = '{:<15}'.format(domain[:15])
-                s += '{:<10}'.format(problem[:10])
-                for algo in algo_order:
-                    s += ' & ' + str(max_data[domain][problem][algo])
-                print(s + ' \\\\')
-            else:
-                s = '{:<15}'.format(domain[:15])
-                s += '{:<10}'.format(problem[:10])
-                for algo in algo_order:
-                    s += ' ' + str(max_data[domain][problem][algo]).rjust(15)
-                print(s)
+def get_table_detail_per_problem(all_data):
+    detail_data = {}
+    for stat, max_data in all_data.items():
+        detail_data[stat] = {}
+        for domain, problems in max_data.items():
+            row_stem = '{:<10}'.format(domain[:10]) + ':'
+            for problem, algos in problems.items():
+                row = row_stem + problem
+                detail_data[stat][row] = {}
+                for algo, val in algos.items():
+                    detail_data[stat][row][algo] = max_data[domain][problem][algo]
+    return detail_data
 
 
 def get_detail_per_domain_data(all_data):
@@ -90,7 +66,7 @@ def get_table_detail_per_domain(all_data, problem_list):
     for stat, max_data in all_data.items():
         detail_data[stat] = {}
         for domain, problems in max_data.items():
-            row = domain+' ('+str(len(problem_list[domain]))+')'
+            row = domain + ' (' + str(len(problem_list[domain])) + ')'
             detail_data[stat][row] = {}
             for problem, algos in problems.items():
                 for algo, val in algos.items():
@@ -230,7 +206,9 @@ def main():
         domain_table = get_table_detail_per_domain(data, problems)
         print_data(domain_table, stats, args.order, args.latex)
     if args.problem:
-        print_detail_per_problem(data, args.order, args.latex)
+        problem_table = get_table_detail_per_problem(data)
+        print_data(problem_table, stats, args.order, args.latex)
+        # print_detail_per_problem(data, args.order, args.latex)
     total_table = get_table_total_per_algo(data)
     print_data(total_table, stats, args.order, args.latex)
 
