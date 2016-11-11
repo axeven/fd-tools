@@ -76,17 +76,21 @@ def get_table_detail_per_domain(all_data, problem_list):
     return detail_data
 
 
-def get_table_total_per_algo(all_data):
+def get_table_total_per_algo(all_data, problem_list):
     detail_data = {}
+    total = 0
+    for problem, lst in problem_list.items():
+        total += len(lst)
+    row = 'total (' + str(total) + ')'
     for stat, data in all_data.items():
         detail_data[stat] = {}
-        detail_data[stat]['total'] = {}
+        detail_data[stat][row] = {}
         for domain, problems in data.items():
             for problem, algos in problems.items():
                 for algo, val_list in algos.items():
-                    if algo not in detail_data[stat]['total']:
-                        detail_data[stat]['total'][algo] = 0
-                    detail_data[stat]['total'][algo] += data[domain][problem][algo]
+                    if algo not in detail_data[stat][row]:
+                        detail_data[stat][row][algo] = 0
+                    detail_data[stat][row][algo] += data[domain][problem][algo]
     return detail_data
 
 
@@ -208,7 +212,7 @@ def main():
     if args.problem:
         problem_table = get_table_detail_per_problem(data)
         print_data(problem_table, stats, args.order, args.latex)
-    total_table = get_table_total_per_algo(data)
+    total_table = get_table_total_per_algo(data, problems)
     print_data(total_table, stats, args.order, args.latex)
 
 
