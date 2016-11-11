@@ -208,7 +208,6 @@ def main():
     if args.problem:
         problem_table = get_table_detail_per_problem(data)
         print_data(problem_table, stats, args.order, args.latex)
-        # print_detail_per_problem(data, args.order, args.latex)
     total_table = get_table_total_per_algo(data)
     print_data(total_table, stats, args.order, args.latex)
 
