@@ -100,52 +100,6 @@ def get_table_detail_per_domain(all_data, problem_list):
     return detail_data
 
 
-def print_detail_per_domain(all_data, problem_list, stats_order, order, latex):
-    # grouping data per domain
-    detail_data = {}
-    for stat, max_data in all_data.items():
-        detail_data[stat] = {}
-        for domain, problems in max_data.items():
-            detail_data[stat][domain] = {}
-            for problem, algos in problems.items():
-                for algo, val in algos.items():
-                    if algo not in detail_data[stat][domain]:
-                        detail_data[stat][domain][algo] = 0
-                    detail_data[stat][domain][algo] += val
-    if order is None:
-        algo_order = []
-    else:
-        algo_order = order
-    header_printed = False
-    for domain in sorted(detail_data.keys()):
-        algos = detail_data[domain]
-        if len(algo_order) == 0:
-            for algo in algos:
-                algo_order.append(algo)
-        if not header_printed:
-            if latex:
-                s = 'Domain (\# instances)'
-                for algo in algo_order:
-                    s += ' & ' + algo
-                print(s + ' \\\\')
-            else:
-                s = '{:<15}'.format('domain')
-                for algo in algos:
-                    s += ' ' + '{:<15}'.format(algo[:15])
-                print(s)
-            header_printed = True
-        if latex:
-            s = domain + ' ({:d})'.format(len(problem_list[domain]))
-            for algo in algo_order:
-                s += ' & ' + str(detail_data[domain][algo])
-            print(s + ' \\\\')
-        else:
-            s = '{:<15}'.format(domain[:15])
-            for algo in algo_order:
-                s += ' ' + str(detail_data[domain][algo]).rjust(15)
-            print(s)
-
-
 def get_table_total_per_algo(all_data):
     detail_data = {}
     for stat, data in all_data.items():
@@ -171,6 +125,7 @@ def print_data(all_data, stats_order, order, latex):
             if len(algo_order) == 0:
                 for algo in algos:
                     algo_order.append(algo)
+                algo_order = sorted(algo_order)
             else:
                 break
             for algo, val in algos.items():
