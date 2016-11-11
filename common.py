@@ -69,4 +69,9 @@ def read_json_file(json_file, filter_data,  unsolvable_only):
                 to_del.append(domain)
         for domain in to_del:
             del grouped_data[domain]
+        existing_problems = {}
+        for domain, problems in grouped_data.items():
+            existing_problems[domain] = set()
+            for problem, algos in problems.items():
+                existing_problems[domain].add(problem)
     return grouped_data, existing_problems
