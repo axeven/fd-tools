@@ -69,16 +69,33 @@ def print_detail_per_problem(max_data, order, latex):
                 print(s)
 
 
-def print_detail_per_domain(max_data, problem_list, order, latex):
+def get_detail_per_domain_data(all_data):
     # grouping data per domain
     detail_data = {}
-    for domain, problems in max_data.items():
-        detail_data[domain] = {}
-        for problem, algos in problems.items():
-            for algo, val in algos.items():
-                if algo not in detail_data[domain]:
-                    detail_data[domain][algo] = 0
-                detail_data[domain][algo] += val
+    for stat, max_data in all_data.items():
+        detail_data[stat] = {}
+        for domain, problems in max_data.items():
+            detail_data[stat][domain] = {}
+            for problem, algos in problems.items():
+                for algo, val in algos.items():
+                    if algo not in detail_data[stat][domain]:
+                        detail_data[stat][domain][algo] = 0
+                    detail_data[stat][domain][algo] += val
+    return detail_data
+
+
+def print_detail_per_domain(all_data, problem_list, stats_order, order, latex):
+    # grouping data per domain
+    detail_data = {}
+    for stat, max_data in all_data.items():
+        detail_data[stat] = {}
+        for domain, problems in max_data.items():
+            detail_data[stat][domain] = {}
+            for problem, algos in problems.items():
+                for algo, val in algos.items():
+                    if algo not in detail_data[stat][domain]:
+                        detail_data[stat][domain][algo] = 0
+                    detail_data[stat][domain][algo] += val
     if order is None:
         algo_order = []
     else:
@@ -113,29 +130,40 @@ def print_detail_per_domain(max_data, problem_list, order, latex):
             print(s)
 
 
-def print_total_per_algo(all_data, stats_order, order, latex):
+def get_table_total_per_algo(all_data):
+    detail_data = {}
+    for stat, data in all_data.items():
+        detail_data[stat] = {}
+        detail_data[stat]['total'] = {}
+        for domain, problems in data.items():
+            for problem, algos in problems.items():
+                for algo, val_list in algos.items():
+                    if algo not in detail_data[stat]['total']:
+                        detail_data[stat]['total'][algo] = 0
+                    detail_data[stat]['total'][algo] += data[domain][problem][algo]
+    return detail_data
+
+
+def print_data(all_data, stats_order, order, latex):
     if order is None:
         algo_order = []
     else:
         algo_order = order
-    print_data = {}
     max_char = 0
-    for stat, data in all_data.items():
-        print_data[stat] = {}
-        for domain, problems in data.items():
-            for problem, algos in problems.items():
-                if len(algo_order) == 0:
-                    for algo in algos:
-                        algo_order.append(algo)
-                for algo, val_list in algos.items():
-                    if algo not in print_data[stat]:
-                        print_data[stat][algo] = 0
-                    print_data[stat][algo] += data[domain][problem][algo]
-        for algo, val in print_data[stat].items():
-            if isinstance(val, float):
-                max_char = max(max_char, len('{:.2f}'.format(val)))
+    for stat, rows in all_data.items():
+        for row_name, algos in rows.items():
+            if len(algo_order) == 0:
+                for algo in algos:
+                    algo_order.append(algo)
             else:
-                max_char = max(max_char, len(str(val)))
+                break
+            for algo, val in algos.items():
+                if isinstance(val, float):
+                    max_char = max(max_char, len('{:.2f}'.format(val)))
+                else:
+                    max_char = max(max_char, len(str(val)))
+
+    row_order = sorted(list(list(all_data.values())[0].keys()))
     if latex:
         s = ' '
         t = ' '
@@ -145,23 +173,29 @@ def print_total_per_algo(all_data, stats_order, order, latex):
                 t += ' & ' + stat
         print(s + ' \\\\')
         print(t + ' \\\\')
-        s = 'total'
-        for algo in algo_order:
-            for stats in stats_order:
-                if isinstance(print_data[stats][algo], float):
-                    s += ' & ' + '{:.2f}'.format(print_data[stats][algo])
-                else:
-                    s += ' & ' + str(print_data[stats][algo])
-        print(s + ' \\\\')
+
+        for row in row_order:
+            s = row
+            for algo in algo_order:
+                for stats in stats_order:
+                    if isinstance(all_data[stats][row][algo], float):
+                        s += ' & ' + '{:.2f}'.format(all_data[stats][row][algo])
+                    else:
+                        s += ' & ' + str(all_data[stats][row][algo])
+            print(s + ' \\\\')
     else:
         old_max_char = max_char
         max_char = max(max_char, 15)
-        col_len = max_char*len(all_data)+len(all_data)-1
+        col_len = max_char * len(all_data) + len(all_data) - 1
         while col_len >= 15 and max_char >= old_max_char:
             max_char -= 1
             col_len = max_char * len(all_data) + len(all_data) - 1
-        s = ('{:<'+str(len('total'))+'}').format(' ')
-        t = ('{:<'+str(len('total'))+'}').format(' ')
+
+        max_row_len = 0
+        for row in row_order:
+            max_row_len = max(max_row_len, len(row))
+        s = ('{:<' + str(max_row_len) + '}').format(' ')
+        t = ('{:<' + str(max_row_len) + '}').format(' ')
         for algo in algo_order:
             s += ' ' + algo[:col_len].rjust(col_len)
             for stat in stats_order:
@@ -169,14 +203,15 @@ def print_total_per_algo(all_data, stats_order, order, latex):
         print(s)
         print(t)
 
-        s = 'total'
-        for algo in algo_order:
-            for stat in stats_order:
-                if isinstance(print_data[stat][algo], float):
-                    s += ' ' + ('{:.2f}'.format(print_data[stat][algo])).rjust(max_char)
-                else:
-                    s += ' ' + str(print_data[stat][algo]).rjust(max_char)
-        print(s)
+        for row in row_order:
+            s = ('{:<'+str(max_row_len)+'}').format(row)
+            for algo in algo_order:
+                for stat in stats_order:
+                    if isinstance(all_data[stat][row][algo], float):
+                        s += ' ' + ('{:.2f}'.format(all_data[stat][row][algo])).rjust(max_char)
+                    else:
+                        s += ' ' + str(all_data[stat][row][algo]).rjust(max_char)
+            print(s)
 
 
 def main():
@@ -221,10 +256,11 @@ def main():
         if s in stats:
             data[s] = f(raw_data, args.attribute)
     if args.domain:
-        print_detail_per_domain(data, problems, args.order, args.latex)
+        print_detail_per_domain(data, problems, stats, args.order, args.latex)
     if args.problem:
         print_detail_per_problem(data, args.order, args.latex)
-    print_total_per_algo(data, stats, args.order, args.latex)
+    total_table = get_table_total_per_algo(data)
+    print_data(total_table, stats, args.order, args.latex)
 
 
 if __name__ == '__main__':
