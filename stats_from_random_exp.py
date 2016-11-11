@@ -84,6 +84,22 @@ def get_detail_per_domain_data(all_data):
     return detail_data
 
 
+def get_table_detail_per_domain(all_data, problem_list):
+    # grouping data per domain
+    detail_data = {}
+    for stat, max_data in all_data.items():
+        detail_data[stat] = {}
+        for domain, problems in max_data.items():
+            row = domain+' ('+str(len(problem_list[domain]))+')'
+            detail_data[stat][row] = {}
+            for problem, algos in problems.items():
+                for algo, val in algos.items():
+                    if algo not in detail_data[stat][row]:
+                        detail_data[stat][row][algo] = 0
+                    detail_data[stat][row][algo] += val
+    return detail_data
+
+
 def print_detail_per_domain(all_data, problem_list, stats_order, order, latex):
     # grouping data per domain
     detail_data = {}
@@ -204,7 +220,7 @@ def print_data(all_data, stats_order, order, latex):
         print(t)
 
         for row in row_order:
-            s = ('{:<'+str(max_row_len)+'}').format(row)
+            s = ('{:<' + str(max_row_len) + '}').format(row)
             for algo in algo_order:
                 for stat in stats_order:
                     if isinstance(all_data[stat][row][algo], float):
@@ -256,7 +272,8 @@ def main():
         if s in stats:
             data[s] = f(raw_data, args.attribute)
     if args.domain:
-        print_detail_per_domain(data, problems, stats, args.order, args.latex)
+        domain_table = get_table_detail_per_domain(data, problems)
+        print_data(domain_table, stats, args.order, args.latex)
     if args.problem:
         print_detail_per_problem(data, args.order, args.latex)
     total_table = get_table_total_per_algo(data)
