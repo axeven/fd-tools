@@ -188,12 +188,21 @@ def check_attribute_exists(grouped_data, attr):
         return False
 
 
-def print_plot_data(graph_data):
-    for domain, problems in graph_data.items():
-        for problem, algos in problems.items():
+def print_plot_data(graph_data, algo_order):
+    for domain in sorted(graph_data.keys()):
+        problems = graph_data[domain]
+        for problem in sorted(problems.keys()):
+            algos = problems[problem]
             print()
             print(domain, problem)
-            for algo, xy_data in algos.items():
+            if algo_order is None:
+                algo_order = []
+                for algo in algos:
+                    algo_order.append(algo)
+            for algo in algo_order:
+                if algo not in algos:
+                    continue
+                xy_data = algos[algo]
                 s = algo + ':'
                 for i in range(len(xy_data['x'])):
                     if isinstance(xy_data['x'][i], float):
@@ -218,8 +227,14 @@ def main():
                         action='store_true')
     parser.add_argument("--latex", "-ltx", help="print the data in latex", dest='latex',
                         action='store_true')
+    parser.add_argument('--order', '-ord',
+                        help='space separated string, the order of the algorithm column shown in the table',
+                        type=str)
     parser.set_defaults(log=False, unsolvable_only=False, latex=False)
     args = parser.parse_args()
+    if args.order is not None:
+        args.order = args.order.split(' ')
+
     data, problems = read_json_file(args.json_file, args.filter, args.unsolvable_only)
     if check_attribute_exists(data, args.attribute):
         data, max_y = get_cumulative_data_per_problem(data, args.attribute)
@@ -227,7 +242,7 @@ def main():
         create_dirs_if_necessary(data, args.outfolder)
         create_cumulative_graph_from_plot_data(data, args.outfolder, args.attribute, args.log)
         if args.latex:
-            print_plot_data(data)
+            print_plot_data(data, args.order)
 
 
 if __name__ == '__main__':
