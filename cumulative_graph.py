@@ -93,10 +93,13 @@ def get_cumulative_data_per_problem(grouped_data, ATTR):
                     unsorted.append(val[ATTR])
                 sorted_data = sorted(unsorted)
                 cumu = 1
-                cumu_data[domain][problem][algo] = {'x': [], 'y': []}
+                cumu_data[domain][problem][algo] = {'x': [sorted_data[0]], 'y': [cumu]}
                 for x in sorted_data:
-                    cumu_data[domain][problem][algo]['x'].append(x)
-                    cumu_data[domain][problem][algo]['y'].append(cumu)
+                    if cumu_data[domain][problem][algo]['x'][-1] == x:
+                        cumu_data[domain][problem][algo]['y'][-1] = cumu
+                    else:
+                        cumu_data[domain][problem][algo]['x'].append(x)
+                        cumu_data[domain][problem][algo]['y'].append(cumu)
                     cumu += 1
                 max_y = max(cumu, max_y)
     return cumu_data, max_y
@@ -125,7 +128,7 @@ def create_dirs_if_necessary(graph_data, OUTDIR):
             os.makedirs(OUTDIR + '/' + domain)
 
 
-def create_cumulative_graph_separate(graph_data, OUTDIR, ATTR, xlog_scale):
+def create_cumulative_graph_from_plot_data(graph_data, OUTDIR, ATTR, xlog_scale):
     print('Creating graphs ...')
 
     # plotting
@@ -185,6 +188,24 @@ def check_attribute_exists(grouped_data, attr):
         return False
 
 
+def print_plot_data(graph_data):
+    for domain, problems in graph_data.items():
+        for problem, algos in problems.items():
+            print()
+            print(domain, problem)
+            for algo, xy_data in algos.items():
+                s = algo + ':'
+                for i in range(len(xy_data['x'])):
+                    if isinstance(xy_data['x'][i], float):
+                        s += ' ({:.2f}, '.format(xy_data['x'][i])
+                    else:
+                        s += ' ({:d}, '.format(xy_data['x'][i])
+                    if isinstance(xy_data['y'][i], float):
+                        s += ' {:.2f})'.format(xy_data['y'][i])
+                    else:
+                        s += ' {:d})'.format(xy_data['y'][i])
+                print(s)
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("json_file", help=".json file containing the lab data")
@@ -195,15 +216,18 @@ def main():
     parser.add_argument("--log", "-l", help='use log scaling on x axis', dest='log', action='store_true')
     parser.add_argument("--filter", "-f", help="filter the intersection domains and problems only", dest='filter',
                         action='store_true')
-    parser.set_defaults(log=False)
-    parser.set_defaults(unsolvable_only=False)
+    parser.add_argument("--latex", "-ltx", help="print the data in latex", dest='latex',
+                        action='store_true')
+    parser.set_defaults(log=False, unsolvable_only=False, latex=False)
     args = parser.parse_args()
     data, problems = read_json_file(args.json_file, args.filter, args.unsolvable_only)
     if check_attribute_exists(data, args.attribute):
         data, max_y = get_cumulative_data_per_problem(data, args.attribute)
         data = get_plot_data_from_cumu(data, max_y)
         create_dirs_if_necessary(data, args.outfolder)
-        create_cumulative_graph_separate(data, args.outfolder, args.attribute, args.log)
+        create_cumulative_graph_from_plot_data(data, args.outfolder, args.attribute, args.log)
+        if args.latex:
+            print_plot_data(data)
 
 
 if __name__ == '__main__':
