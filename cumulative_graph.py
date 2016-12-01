@@ -90,18 +90,20 @@ def get_cumulative_data_per_problem(grouped_data, ATTR):
             for algo, val_list in algos.items():
                 unsorted = []
                 for val in val_list:
-                    unsorted.append(val[ATTR])
-                sorted_data = sorted(unsorted)
-                cumu = 1
-                cumu_data[domain][problem][algo] = {'x': [sorted_data[0]], 'y': [cumu]}
-                for x in sorted_data:
-                    if cumu_data[domain][problem][algo]['x'][-1] == x:
-                        cumu_data[domain][problem][algo]['y'][-1] = cumu
-                    else:
-                        cumu_data[domain][problem][algo]['x'].append(x)
-                        cumu_data[domain][problem][algo]['y'].append(cumu)
-                    cumu += 1
-                max_y = max(cumu, max_y)
+                    if ATTR in val:
+                        unsorted.append(val[ATTR])
+                if len(unsorted) > 0:
+                    sorted_data = sorted(unsorted)
+                    cumu = 1
+                    cumu_data[domain][problem][algo] = {'x': [sorted_data[0]], 'y': [cumu]}
+                    for x in sorted_data:
+                        if cumu_data[domain][problem][algo]['x'][-1] == x:
+                            cumu_data[domain][problem][algo]['y'][-1] = cumu
+                        else:
+                            cumu_data[domain][problem][algo]['x'].append(x)
+                            cumu_data[domain][problem][algo]['y'].append(cumu)
+                        cumu += 1
+                    max_y = max(cumu, max_y)
     return cumu_data, max_y
 
 
