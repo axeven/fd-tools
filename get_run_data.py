@@ -13,35 +13,75 @@ def read_json_file(json_file, attr, unsolvable_only, domain, problem, algo, quer
 
     print('Querying ...')
     q_data = {}
+
+    passed_count = [0, 0, 0, 0]
     for idx, val in data.items():
         if unsolvable_only and not val['unsolvable']:
             continue
+        passed_count[0] += 1
         if algo is not None and not val['id'][0].startswith(algo):
             continue
+        passed_count[1] += 1
         if domain is not None and not val['id'][1] == domain:
             continue
+        passed_count[2] += 1
         if problem is not None and not val['id'][2] == problem:
             continue
+        passed_count[3] += 1
         passed = True
-        for qattr, qval in query:
-            if val[qattr] != qval:
-                passed = False
-                break
+        for qattr, comparator, qval in query:
+            if qattr in val:
+                if not comparator(val[qattr], qval):
+                    passed = False
+                    break
         if passed:
             q_data[idx] = val[attr]
+    if passed_count[0] == 0:
+        print('No unsolvable data found')
+    elif passed_count[1] == 0:
+        print('algo', algo, 'not found')
+    elif passed_count[2] == 0:
+        print('domain', domain, 'not found')
+    elif passed_count[3] == 0:
+        print('problem', problem, 'not found')
+
     return q_data
+
+
+def equal(a, b):
+    return a == b
+
+
+def lte(a, b):
+    return a <= b
+
+
+def gte(a, b):
+    return a >= b
+
 
 def parse_query(query_string):
     single = query_string.split('&')
     query = []
     for q in single:
-        attr = q.split('=')[0]
-        val = q.split('=')[1]
+        if '<=' in q:
+            qs = q.split('<=')
+        elif '>=' in q:
+            qs = q.split('>=')
+        elif '=' in q:
+            qs = q.split('=')
+        attr = qs[0]
+        val = qs[1]
         try:
             val = int(val)
         except ValueError:
             pass
-        query.append((attr, val))
+        if '<=' in q:
+            query.append((attr, lte, val))
+        elif '>=' in q:
+            query.append((attr, gte, val))
+        elif '=' in q:
+            query.append((attr, equal, val))
     return query
 
 
@@ -60,7 +100,8 @@ def main():
     args = parser.parse_args()
     query = parse_query(args.query)
 
-    data = read_json_file(args.json_file, args.attribute, args.unsolvable_only, args.domain, args.problem, args.algo_start, query)
+    data = read_json_file(args.json_file, args.attribute, args.unsolvable_only, args.domain, args.problem,
+                          args.algo_start, query)
     for idx, val in data.items():
         print(idx, val)
 
