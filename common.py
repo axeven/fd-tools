@@ -75,3 +75,25 @@ def read_json_file(json_file, filter_data,  unsolvable_only):
             for problem, algos in problems.items():
                 existing_problems[domain].add(problem)
     return grouped_data, existing_problems
+
+
+def check_attribute_exists(grouped_data, attr):
+    attrs = []
+    for domain, problems in grouped_data.items():
+        for problem, algos in problems.items():
+            for algo, runs in algos.items():
+                for run in runs:
+                    attrs = run.keys()
+                    break
+                break
+            break
+        break
+    if attr in attrs:
+        return True
+    else:
+        print('Attribute ' + attr + ' doesn\'t exists.')
+        print('Available attributes are:')
+        attrs = sorted(attrs)
+        for a in attrs:
+            print(a)
+        return False
