@@ -1,8 +1,79 @@
 import json
 import re
 
+SUITE_TOO_LARGE = ['bag-barman']
+SUITE_TRIVIAL = ['bottleneck']
+SUITE_NONTRIVIAL_UNSOLVABLE = []
+SUITE_SOLVABLE = []
+SUITE_UNKNOWN = []
+# bag-gripper
+for i in range(1, 26):
+    SUITE_NONTRIVIAL_UNSOLVABLE.append('bag-gripper:prob' + ('%02d' % i) + '.pddl')
+for i in range(1, 6):
+    SUITE_SOLVABLE.append('bag-gripper:satprob' + ('%02d' % i) + '.pddl')
+# bag-transport
+for i in [2, 5, 11, 20, 21]:
+    SUITE_NONTRIVIAL_UNSOLVABLE.append('bag-transport:prob' + ('%02d' % i) + '.pddl')
+for i in range(1, 30):
+    SUITE_SOLVABLE.append('bag-transport:satprob' + ('%02d' % i) + '.pddl')
+# cave-diving
+for i in range(1, 26):
+    if i != 5:
+        SUITE_NONTRIVIAL_UNSOLVABLE.append('cave-diving:prob' + ('%02d' % i) + '.pddl')
+for i in range(1, 6):
+    SUITE_SOLVABLE.append('cave-diving:satprob' + ('%02d' % i) + '.pddl')
+# chessboard-pebbling
+for i in range(3, 26):
+    SUITE_NONTRIVIAL_UNSOLVABLE.append('chessboard-pebbling:prob' + ('%02d' % i) + '.pddl')
+# diagnosis
+for i in [4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]:
+    SUITE_NONTRIVIAL_UNSOLVABLE.append('diagnosis:prob' + ('%02d' % i) + '.pddl')
+for i in range(1, 124):
+    SUITE_SOLVABLE.append('diagnosis:satprob' + ('%02d' % i) + '.pddl')
+# document-transfer
+for i in [1, 2, 3, 5, 7, 8, 10, 11, 13, 14, 18, 19]:
+    SUITE_NONTRIVIAL_UNSOLVABLE.append('document-transfer:prob' + ('%02d' % i) + '.pddl')
+for i in [1, 2, 3, 4, 5, 10]:
+    SUITE_SOLVABLE.append('document-transfer:satprob' + ('%02d' % i) + '.pddl')
+for i in range(1, 10):
+    SUITE_UNKNOWN.append('document-transfer:unknownprob' + ('%02d' % i) + '.pddl')
+# over-nomystery
+for i in range(3, 25):
+    SUITE_NONTRIVIAL_UNSOLVABLE.append('over-nomystery:prob' + ('%02d' % i) + '.pddl')
+for i in range(1, 6):
+    SUITE_SOLVABLE.append('over-nomystery:satprob' + ('%02d' % i) + '.pddl')
+# over-rovers
+for i in [4, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]:
+    SUITE_NONTRIVIAL_UNSOLVABLE.append('over-rovers:prob' + ('%02d' % i) + '.pddl')
+for i in range(1, 7):
+    SUITE_SOLVABLE.append('over-rovers:satprob' + ('%02d' % i) + '.pddl')
+# over-tpp
+for i in range(1, 31):
+    if i != 2 and i != 3:
+        SUITE_NONTRIVIAL_UNSOLVABLE.append('over-tpp:prob' + ('%02d' % i) + '.pddl')
+for i in range(1, 5):
+    SUITE_SOLVABLE.append('over-tpp:satprob' + ('%02d' % i) + '.pddl')
+# pegsol
+for i in range(9, 31):
+    SUITE_NONTRIVIAL_UNSOLVABLE.append('pegsol:prob' + ('%02d' % i) + '.pddl')
+for i in range(1, 6):
+    SUITE_SOLVABLE.append('pegsol:satprob' + ('%02d' % i) + '.pddl')
+# pegsol-row5
+for i in range(4, 16):
+    SUITE_NONTRIVIAL_UNSOLVABLE.append('pegsol-row5:prob' + ('%02d' % i) + '.pddl')
+for i in range(1, 6):
+    SUITE_SOLVABLE.append('pegsol-row5:satprob' + ('%02d' % i) + '.pddl')
+# sliding-tiles
+for i in range(1, 21):
+    SUITE_NONTRIVIAL_UNSOLVABLE.append('sliding-tiles:prob' + ('%02d' % i) + '.pddl')
+for i in range(1, 6):
+    SUITE_SOLVABLE.append('sliding-tiles:satprob' + ('%02d' % i) + '.pddl')
+# tetris
+for i in range(6, 21):
+    SUITE_NONTRIVIAL_UNSOLVABLE.append('tetris:prob' + ('%02d' % i) + '.pddl')
 
-def read_json_file(json_file, filter_data,  unsolvable_only):
+
+def read_json_file(json_file, filter_data, unsolvable_only, filter_suite=None):
     """
     Returns a dictionary in the following format: dict[domain][problem][algo] = [list of experiment data]
     the algo must have format "algo_name%d" where %d is an integer representing run_id for this algorithm
@@ -74,6 +145,21 @@ def read_json_file(json_file, filter_data,  unsolvable_only):
             existing_problems[domain] = set()
             for problem, algos in problems.items():
                 existing_problems[domain].add(problem)
+
+    if filter_suite is not None:
+        domain_to_del = []
+        for domain, problems in grouped_data.items():
+            prob_to_del = []
+            for prob, algos in problems.items():
+                if domain+':'+prob not in filter_suite:
+                    prob_to_del.append(prob)
+            for prob in prob_to_del:
+                del problems[prob]
+            if len(problems) == 0:
+                domain_to_del.append(domain)
+        for domain in domain_to_del:
+            del grouped_data[domain]
+
     return grouped_data, existing_problems
 
 

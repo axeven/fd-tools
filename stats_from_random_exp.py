@@ -1,6 +1,6 @@
 import argparse
 
-from common import read_json_file
+from common import read_json_file, SUITE_NONTRIVIAL_UNSOLVABLE
 
 
 def get_max_data(grouped_data, attr):
@@ -201,7 +201,7 @@ def main():
     if args.order is not None:
         args.order = args.order.split(' ')
 
-    raw_data, problems = read_json_file(args.json_file, args.filter, False)
+    raw_data, problems = read_json_file(args.json_file, args.filter, False, SUITE_NONTRIVIAL_UNSOLVABLE)
     data = {}
     for s, f in supported.items():
         if s in stats:
