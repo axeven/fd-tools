@@ -43,7 +43,10 @@ class MinMaxColor:
         self.max_color = max_color
 
     def get_color(self, value):
-        intp_value = (value - self.min_value) / (self.max_value - self.min_value)
+        if self.min_value < self.max_value:
+            intp_value = (value - self.min_value) / (self.max_value - self.min_value)
+        else:
+            intp_value = 0
         intp_color = [0] * len(self.min_color)
         for i in range(len(self.min_color)):
             intp_color[i] = int(self.min_color[i] + intp_value * (self.max_color[i] - self.min_color[i]))
