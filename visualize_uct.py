@@ -127,7 +127,7 @@ def visualize_node(node, min_reward, max_reward, scale=1, hist_bucket=0.1):
         unit = bins[1] - bins[0]
         if i > 0:
             child_hist = [0] * 51
-            child_x = [i * unit + 0.5 * unit for i in range(51)]
+            child_x = [bins[0] + i * unit + 0.5 * unit for i in range(51)]
             for nd, pt in rows[i]:
                 child_hist[int((nd.reward - bins[0]) / unit)] += len(nd.children)
             plt.plot(child_x, child_hist, 'red')
