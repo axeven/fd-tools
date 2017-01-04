@@ -6,6 +6,7 @@ import numpy as np
 import re
 
 from PIL import Image, ImageDraw
+import math
 
 
 class Node:
@@ -151,14 +152,16 @@ def visualize_node(node, min_reward, max_reward, scale=1, hist_bucket=0.1):
     for i in range(len(rows)):
         plt.clf()
         rewards = [v[0].reward for v in rows[i]]
-        n, bins, patches = plt.hist(rewards, 50, facecolor='green', alpha=0.75)
+        n, bins, patches = plt.hist(rewards, 50, facecolor='blue', alpha=0.75)
+        plt.clf()
         unit = bins[1] - bins[0]
         if i > 0:
-            child_hist = [0] * 51
-            child_x = [bins[0] + i * unit + 0.5 * unit for i in range(51)]
+            child_hist = [0] * 50
+            child_x = [bins[0] + i * unit for i in range(50)]
             for nd, pt in rows[i]:
-                child_hist[int((nd.reward - bins[0]) / unit)] += nd.simulation_count
-            plt.plot(child_x, child_hist, 'red')
+                child_hist[min(int(math.floor(((nd.reward - bins[0]) / unit))), 49)] += nd.simulation_count
+            plt.bar(child_x, child_hist, unit, color='yellow', alpha=1)
+        n, bins, patches = plt.hist(rewards, 50, facecolor='blue', alpha=0.5)
         plt.grid(True)
         plt.savefig('hist_at_' + str(i) + '.png')
 
@@ -166,9 +169,6 @@ def visualize_node(node, min_reward, max_reward, scale=1, hist_bucket=0.1):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("input_file", help="file containing the log data")
-    # parser.add_argument("--unsolvable-only", "-u", help="only count the unsolvable instances", dest='unsolvable_only',
-    #                    action='store_true')
-    # parser.set_defaults(unsolvable_only=False)
 
     args = parser.parse_args()
     tree_root, min_reward, max_reward = construct_tree_from_log_file(args.input_file)
