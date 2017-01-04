@@ -9,30 +9,31 @@ from PIL import Image, ImageDraw
 
 
 class Node:
-    def __init__(self, vars, reward):
+    def __init__(self, vars):
         self.vars = vars
         self.child_id = 0
-        self.reward = reward
-        self.last_reward = reward
+        self.initial_reward = 0
+        self.reward = 0
         self.children = []
+        self.parents = []
+        self.duplicate = 0
+        self.simulation_count = 0
 
     def __eq__(self, other):
         return self.vars == other.vars
 
     def add_child(self, node):
-        if not self.vars.issubset(node.vars):
-            return False
-        elif self == node:
-            self.last_reward = node.reward
-            return True
-        added = False
-        for child in self.children:
-            added = added or child.add_child(node)
-        if not added:
-            node.child_id = len(self.children)
-            self.children.append(node)
-            return True
-        return True
+        self.children.append(node)
+        node.parents.append(self)
+
+    def update_reward(self, reward):
+        if self.simulation_count == 0:
+            self.initial_reward = reward
+        self.reward = self.reward * self.simulation_count + reward
+        self.simulation_count += 1
+        self.reward /= self.simulation_count
+        for par in self.parents:
+            par.update_reward(reward)
 
 
 class MinMaxColor:
@@ -53,30 +54,57 @@ class MinMaxColor:
         return tuple(intp_color)
 
 
+def get_parents(existing_nodes, child_id):
+    parents = []
+    for var in child_id:
+        parent_id = set(child_id)
+        parent_id.remove(var)
+        frozen_id = frozenset(parent_id)
+        if frozen_id in existing_nodes:
+            parents.append(existing_nodes[frozen_id])
+    return parents
+
+
 def construct_tree_from_log_file(location):
     id_pattern = re.compile(r'merged variables \{([\d\s]*)\}')
-    reward_pattern = re.compile(r'reward (\d+\.*\d*)')
-    root = Node(set([]), 0)
+    reward_pattern = re.compile(r'Reward for this simulation: (\d+\.*\d*)')
+    root = Node(set([]))
+    existing_nodes = {frozenset([0]): root}
     min_reward = float('inf')
     max_reward = 0
+    reward_match = False
     with open(location, 'r') as f:
         for line in f:
-            match = id_pattern.search(line)
-            if match:
-                ids = match.group(1).strip().split(' ')
-                id_set = set([])
-                for i in ids:
-                    id_set.add(int(i))
-                match = reward_pattern.search(line)
-                reward = float(match.group(1))
-                min_reward = min(min_reward, reward)
-                max_reward = max(max_reward, reward)
-                root.add_child(Node(id_set, reward))
+            if not reward_match:
+                reward_match = reward_pattern.search(line)
+            else:
+                id_match = id_pattern.search(line)
+                if id_match:
+                    ids = id_match.group(1).strip().split(' ')
+                    id_set = set([])
+                    for i in ids:
+                        id_set.add(int(i))
+                    frozen_id = frozenset(id_set)
+                    if frozen_id not in existing_nodes:
+                        reward = float(reward_match.group(1))
+                        min_reward = min(min_reward, reward)
+                        max_reward = max(max_reward, reward)
+                        if len(frozen_id) == 2:
+                            parents = [root]
+                        else:
+                            parents = get_parents(existing_nodes, frozen_id)
+                        child = Node(frozen_id)
+                        existing_nodes[frozen_id] = child
+                        for par in parents:
+                            par.add_child(child)
+                        child.update_reward(reward)
+                    reward_match = False
+
     return root, min_reward, max_reward
 
 
 def print_node(node, prefix=''):
-    print(prefix + str(node.vars), str(node.reward), str(node.last_reward))
+    print(prefix + str(node.vars), str(node.reward), str(node.simulation_count))
     for child in node.children:
         print_node(child, prefix + ' ')
 
@@ -144,8 +172,8 @@ def main():
 
     args = parser.parse_args()
     tree_root, min_reward, max_reward = construct_tree_from_log_file(args.input_file)
-    # print_node(tree_root)
-    visualize_node(tree_root, min_reward, max_reward, 3)
+    print_node(tree_root)
+    # visualize_node(tree_root, min_reward, max_reward, 3)
 
 
 if __name__ == '__main__':
