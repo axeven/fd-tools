@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
 import argparse
+import math
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import re
 
+from common import get_file_list
 from PIL import Image, ImageDraw
-import math
 
 
 class Node:
@@ -110,7 +112,7 @@ def print_node(node, prefix=''):
         print_node(child, prefix + ' ')
 
 
-def visualize_node(node, min_reward, max_reward, scale=1, hist_bucket=0.1):
+def visualize_node(node, min_reward, max_reward, scale=1, hist_bucket=0.1, output_folder='./'):
     reward_color = MinMaxColor(min_reward, max_reward, (0, 0, 255), (255, 0, 0))
     rows = []
     queue = [(node, 0, ())]
@@ -147,7 +149,7 @@ def visualize_node(node, min_reward, max_reward, scale=1, hist_bucket=0.1):
                 py = scale * pi * (row_padding + scale)
                 draw.line([x, y - 1, px, py + 1], (0, 0, 0))
     del draw
-    im.save('out.png', 'PNG')
+    im.save(output_folder + 'out.png', 'PNG')
 
     for i in range(len(rows)):
         plt.clf()
@@ -159,21 +161,44 @@ def visualize_node(node, min_reward, max_reward, scale=1, hist_bucket=0.1):
             child_hist = [0] * 50
             child_x = [bins[0] + i * unit for i in range(50)]
             for nd, pt in rows[i]:
-                child_hist[min(int(math.floor(((nd.reward - bins[0]) / unit))), 49)] += nd.simulation_count
+                if unit == 0:
+                    idx = 0
+                else:
+                    idx = min(int(math.floor(((nd.reward - bins[0]) / unit))), 49)
+                child_hist[idx] += nd.simulation_count
             plt.bar(child_x, child_hist, unit, color='yellow', alpha=1)
         n, bins, patches = plt.hist(rewards, 50, facecolor='blue', alpha=0.5)
         plt.grid(True)
-        plt.savefig('hist_at_' + str(i) + '.png')
+        plt.savefig(output_folder + 'hist_at_' + str(i) + '.png')
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("input_file", help="file containing the log data")
-
+    parser.add_argument("input_file", help="file or folder containing the log data")
+    parser.add_argument('output_folder', help="output folder to save the images", default='./')
     args = parser.parse_args()
-    tree_root, min_reward, max_reward = construct_tree_from_log_file(args.input_file)
-    # print_node(tree_root)
-    visualize_node(tree_root, min_reward, max_reward, 3)
+
+    if os.path.isfile(args.input_file):
+        input_files = [args.input_file]
+    elif os.path.exists(args.input_file):
+        input_files = get_file_list(args.input_file, ext='.log')
+    if len(input_files) == 0:
+        print(args.input_file, 'does not exist')
+        return
+    output_folder = args.output_folder
+    if not output_folder.endswith('/'):
+        output_folder += '/'
+    for file in input_files:
+        print('processing', file, '...')
+        tree_root, min_reward, max_reward = construct_tree_from_log_file(file)
+        # print_node(tree_root)
+        if len(input_files) == 1:
+            out = output_folder
+        elif len(input_files) > 1:
+            out = output_folder + '/' + file[len(args.input_file):] + '/'
+        if not os.path.exists(out):
+            os.makedirs(out)
+        visualize_node(tree_root, min_reward, max_reward, 3, output_folder=out)
 
 
 if __name__ == '__main__':

@@ -1,4 +1,6 @@
+import glob
 import json
+import os
 import re
 
 SUITE_TOO_LARGE = ['bag-barman']
@@ -146,7 +148,7 @@ def read_json_file(json_file, filter_data, unsolvable_only, filter_suite=None):
         for domain, problems in grouped_data.items():
             prob_to_del = []
             for prob, algos in problems.items():
-                if domain+':'+prob not in filter_suite:
+                if domain + ':' + prob not in filter_suite:
                     prob_to_del.append(prob)
             for prob in prob_to_del:
                 del problems[prob]
@@ -182,3 +184,18 @@ def check_attribute_exists(grouped_data, attr):
         for a in attrs:
             print(a)
         return False
+
+
+def get_file_list(folder, ext=None):
+    """
+    Get the file list recursively with a certain extension of the folder
+    """
+    files = []
+    if ext is None:
+        dir = folder + '/**/*'
+    else:
+        dir = folder + '/**/*' + ext
+    for sub in glob.glob(dir, recursive=True):
+        if os.path.isfile(sub):
+            files.append(folder + str(sub)[len(folder):])
+    return files
