@@ -45,21 +45,6 @@ def get_table_detail_per_problem(all_data):
     return detail_data
 
 
-def get_detail_per_domain_data(all_data):
-    # grouping data per domain
-    detail_data = {}
-    for stat, max_data in all_data.items():
-        detail_data[stat] = {}
-        for domain, problems in max_data.items():
-            detail_data[stat][domain] = {}
-            for problem, algos in problems.items():
-                for algo, val in algos.items():
-                    if algo not in detail_data[stat][domain]:
-                        detail_data[stat][domain][algo] = 0
-                    detail_data[stat][domain][algo] += val
-    return detail_data
-
-
 def get_table_detail_per_domain(all_data, problem_list):
     # grouping data per domain
     detail_data = {}
