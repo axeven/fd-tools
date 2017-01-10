@@ -14,20 +14,22 @@ from PIL import Image, ImageDraw
 class Node:
     def __init__(self, vars):
         self.vars = vars
-        self.child_id = 0
         self.initial_reward = 0
         self.reward = 0
-        self.children = []
-        self.parents = []
+        self.children = set()
+        self.parents = set()
         self.duplicate = 0
         self.simulation_count = 0
 
     def __eq__(self, other):
         return self.vars == other.vars
 
+    def __hash__(self):
+        return hash(self.vars)
+
     def add_child(self, node):
-        self.children.append(node)
-        node.parents.append(self)
+        self.children.add(node)
+        node.parents.add(self)
 
     def update_reward(self, reward):
         if self.simulation_count == 0:
@@ -35,6 +37,8 @@ class Node:
         self.reward = self.reward * self.simulation_count + reward
         self.simulation_count += 1
         self.reward /= self.simulation_count
+        # if self.reward > 0:
+        #     print(self.vars, self.reward)
         for par in self.parents:
             par.update_reward(reward)
 
@@ -71,7 +75,7 @@ def get_parents(existing_nodes, child_id):
 def construct_tree_from_log_file(location):
     id_pattern = re.compile(r'merged variables \{([\d\s]*)\}')
     reward_pattern = re.compile(r'Reward for this simulation: (\d+\.*\d*)')
-    root = Node(set([]))
+    root = Node(frozenset())
     existing_nodes = {frozenset([0]): root}
     min_reward = float('inf')
     max_reward = 0
@@ -100,6 +104,9 @@ def construct_tree_from_log_file(location):
                         existing_nodes[frozen_id] = child
                         for par in parents:
                             par.add_child(child)
+                        if reward > 1:
+                            print(line, reward)
+                            return
                         child.update_reward(reward)
                     reward_match = False
 
@@ -112,62 +119,42 @@ def print_node(node, prefix=''):
         print_node(child, prefix + ' ')
 
 
-def visualize_node(node, min_reward, max_reward, scale=1, hist_bucket=0.1, output_folder='./'):
-    reward_color = MinMaxColor(min_reward, max_reward, (0, 0, 255), (255, 0, 0))
-    rows = []
-    queue = [(node, 0, ())]
+def visualize_node(node, output_folder='./'):
+    node_at_depth = []
+    queue = [(node, 0)]
     while len(queue) != 0:
         next_queue = []
-        for cur_node, depth, parent in queue:
-            if depth == len(rows):
-                rows.append([])
-            rows[depth].append((cur_node, parent))
+        for cur_node, depth in queue:
+            if depth == len(node_at_depth):
+                node_at_depth.append(set())
+            node_at_depth[depth].add(cur_node)
             if len(cur_node.children) != 0:
-                next_queue.append((cur_node.children[0], depth + 1, (depth, len(rows[depth]) - 1)))
-                for i in range(1, len(cur_node.children)):
-                    next_queue.append((cur_node.children[i], depth + 1, ()))
+                for child_i in cur_node.children:
+                    next_queue.append((child_i, depth + 1))
         queue = next_queue
 
-    width = 0
-    row_padding = 100
-    for i in range(len(rows)):
-        width = max(len(rows[i]), width)
-
-    im = Image.new('RGB', (scale * width, scale * (len(rows) * (row_padding + 1) - 1)), (255, 255, 255))
-
-    draw = ImageDraw.Draw(im)
-    for i in range(1, len(rows)):
-        for j in range(len(rows[i])):
-            cnode, parent = rows[i][j]
-            color = reward_color.get_color(cnode.reward)
-            x = scale * j
-            y = scale * i * (row_padding + scale)
-            draw.rectangle([x, y, x + scale, y + scale], color, color)
-            if len(parent) != 0:
-                pi, pj = parent
-                px = scale * pj
-                py = scale * pi * (row_padding + scale)
-                draw.line([x, y - 1, px, py + 1], (0, 0, 0))
-    del draw
-    im.save(output_folder + 'out.png', 'PNG')
-
-    for i in range(len(rows)):
+    for i in range(len(node_at_depth)):
         plt.clf()
-        rewards = [v[0].reward for v in rows[i]]
-        n, bins, patches = plt.hist(rewards, 50, facecolor='blue', alpha=0.75)
+        rewards = [v.reward for v in node_at_depth[i]]
+        try:
+            n, bins, patches = plt.hist(rewards, 50, facecolor='blue', alpha=0.75)
+        except ValueError as e:
+            print(rewards)
+            return
+        # for cosmetics, we redraw it later
         plt.clf()
         unit = bins[1] - bins[0]
         if i > 0:
             child_hist = [0] * 50
             child_x = [bins[0] + i * unit for i in range(50)]
-            for nd, pt in rows[i]:
+            for nd in node_at_depth[i]:
                 if unit == 0:
                     idx = 0
                 else:
                     idx = min(int(math.floor(((nd.reward - bins[0]) / unit))), 49)
                 child_hist[idx] += nd.simulation_count
             plt.bar(child_x, child_hist, unit, color='yellow', alpha=1)
-        n, bins, patches = plt.hist(rewards, 50, facecolor='blue', alpha=0.5)
+        plt.hist(rewards, 50, facecolor='blue', alpha=0.5)
         plt.grid(True)
         plt.savefig(output_folder + 'hist_at_' + str(i) + '.png')
 
@@ -198,7 +185,7 @@ def main():
             out = output_folder + '/' + file[len(args.input_file):] + '/'
         if not os.path.exists(out):
             os.makedirs(out)
-        visualize_node(tree_root, min_reward, max_reward, 3, output_folder=out)
+        visualize_node(tree_root, output_folder=out)
 
 
 if __name__ == '__main__':
