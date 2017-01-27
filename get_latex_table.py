@@ -142,6 +142,6 @@ def main():
     table_data = get_table_detail_per_domain(data, args.attr, problems)
     print_data(table_data, algo_order, args.col_split, args.col_split_id)
 
-    
+
 if __name__ == '__main__':
     main()
