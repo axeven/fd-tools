@@ -16,6 +16,7 @@ def read_json_simple(json_file, exclude=[]):
     with open(json_file) as data_file:
         data = json.load(data_file)
     print('Grouping data ...')
+    excluded = 0
     grouped_data = {}
     existing_problems = {}
     for idx, val in data.items():
@@ -27,7 +28,11 @@ def read_json_simple(json_file, exclude=[]):
             grouped_data[val['id'][1]][val['id'][2]] = {}
         if val['id'][0] not in exclude:
             grouped_data[val['id'][1]][val['id'][2]][val['id'][0]] = val
+        else:
+            excluded += 1
 
+    if excluded == 0 and len(exclude) > 0:
+        print('Warning: no data excluded for exclude=', str(exclude))
     domain_to_del = []
     for domain, problems in grouped_data.items():
         prob_to_del = []
@@ -109,18 +114,34 @@ def print_data(all_data, order, separator, index):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("input_file", help="file or folder containing the log data")
-    parser.add_argument("col_order", help="the order of (algorithm) columns")
+    parser.add_argument("--col_split", help="substring algorithm name splitter", default='-')
+    parser.add_argument("--col_split_id", help="index of split algorithm name used for id", default=0, type=int)
+    parser.add_argument("--col_split_cast", help="cast for the column id", default='str')
+    parser.add_argument("--attr", help="attribute to show", default='unsolvable')
+    parser.add_argument("--col_order", help="the order of (algorithm) columns (comma separated)")
+    parser.add_argument('--exclude', '-e', help='excluded algorithms (comma separated)')
     args = parser.parse_args()
+
+    if args.exclude is None:
+        args.exclude = []
+    else:
+        args.exclude = args.exclude.split(',')
 
     if args.col_order is None:
         args.col_order = []
     else:
         args.col_order = args.col_order.split(',')
-    data, problems = read_json_simple(args.input_file, exclude=['base_unsat'])
-    algo_order = algo_order_by_sub_name(data, 'safe-', 1, str, args.col_order)
-    table_data = get_table_detail_per_domain(data, 'unsolvable', problems)
-    print_data(table_data, algo_order, 'safe-', 1)
 
+    known_types = {'str':str, 'int': int, 'float': float}
+    if args.col_split_cast not in known_types:
+        print('Unknown type for casting column id')
+        exit(1)
 
+    data, problems = read_json_simple(args.input_file, exclude=args.exclude)
+    algo_order = algo_order_by_sub_name(data, args.col_split, args.col_split_id, known_types[args.col_split_cast], args.col_order)
+    table_data = get_table_detail_per_domain(data, args.attr, problems)
+    print_data(table_data, algo_order, args.col_split, args.col_split_id)
+
+    
 if __name__ == '__main__':
     main()
