@@ -46,7 +46,7 @@ def read_json_simple(json_file, exclude=[]):
     return grouped_data, existing_problems
 
 
-def algo_order_by_sub_name(data, separator, index, cast):
+def algo_order_by_sub_name(data, separator, index, cast, order=[]):
     algo_list = []
     for domain, problems in data.items():
         for problem, algos in problems.items():
@@ -54,8 +54,17 @@ def algo_order_by_sub_name(data, separator, index, cast):
                 algo_list.append((cast(algo.split(separator)[index]), algo))
             break
         break
-    algo_list.sort(key=lambda tup: tup[0])
-    return [alg for key, alg in algo_list]
+    if len(order) == 0:
+        algo_list.sort(key=lambda tup: tup[0])
+        return [alg for key, alg in algo_list]
+    else:
+        # assumes order and algo_list has bijection relation
+        res = []
+        for o in order:
+            for id, alg in algo_list:
+                if id.startswith(o):
+                    res.append(alg)
+        return res
 
 
 def get_table_detail_per_domain(all_data, attr, problem_list):
@@ -100,12 +109,17 @@ def print_data(all_data, order, separator, index):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("input_file", help="file or folder containing the log data")
+    parser.add_argument("col_order", help="the order of (algorithm) columns")
     args = parser.parse_args()
 
-    data, problems = read_json_simple(args.input_file, ['base_unsat'])
-    algo_order = algo_order_by_sub_name(data, '-', 5, float)
+    if args.col_order is None:
+        args.col_order = []
+    else:
+        args.col_order = args.col_order.split(',')
+    data, problems = read_json_simple(args.input_file, exclude=['base_unsat'])
+    algo_order = algo_order_by_sub_name(data, 'safe-', 1, str, args.col_order)
     table_data = get_table_detail_per_domain(data, 'unsolvable', problems)
-    print_data(table_data, algo_order, '-', 5)
+    print_data(table_data, algo_order, 'safe-', 1)
 
 
 if __name__ == '__main__':
