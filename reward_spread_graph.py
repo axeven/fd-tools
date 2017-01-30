@@ -142,8 +142,8 @@ def visualize_reward_distribution(node, min_reward, max_reward, bin_count, max_y
             n[max(0, int(math.ceil((v.reward - min_reward)/bin_size)))] += 1
         bin_size = bins[1] - bins[0]
         if i > 0:
-            child_hist = [0] * 50
-            child_x = [bins[0] + i * bin_size for i in range(50)]
+            child_hist = [0] * bin_count
+            child_x = [bins[0] + i * bin_size for i in range(bin_count)]
             for nd in node_at_depth[i]:
                 if bin_size == 0:
                     idx = 0
