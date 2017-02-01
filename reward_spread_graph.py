@@ -134,6 +134,9 @@ def visualize_reward_distribution(node, min_reward, max_reward, bin_count, max_y
         queue = next_queue
 
     for i in range(len(node_at_depth)):
+        dat_file = output_folder + 'hist_at_' + str(i) + '.dat'
+        dat = open(dat_file, 'w')
+        dat.write('reward count simcount\n')
         plt.clf()
         bin_size = (max_reward-min_reward) / bin_count
         bins = [min_reward + bin_size * i for i in range(bin_count)]
@@ -141,8 +144,8 @@ def visualize_reward_distribution(node, min_reward, max_reward, bin_count, max_y
         for v in node_at_depth[i]:
             n[max(0, int(math.ceil((v.reward - min_reward)/bin_size)))] += 1
         bin_size = bins[1] - bins[0]
+        child_hist = [0] * bin_count
         if i > 0:
-            child_hist = [0] * bin_count
             child_x = [bins[0] + i * bin_size for i in range(bin_count)]
             for nd in node_at_depth[i]:
                 if bin_size == 0:
@@ -151,12 +154,15 @@ def visualize_reward_distribution(node, min_reward, max_reward, bin_count, max_y
                     idx = max(int(math.ceil(((nd.reward - bins[0]) / bin_size))), 0)
                 child_hist[idx] += nd.simulation_count
             plt.bar(child_x, child_hist, bin_size, color='yellow', alpha=1)
+        for j in range(bin_count):
+            dat.write("{:.6f} {:d} {:d}\n".format(bin_size*j, n[j], child_hist[j]))
+        dat.write("{:.6f} {:d} {:d}".format(bin_size * bin_count, n[j], child_hist[j]))
         plt.bar(bins, n, bin_size, color='blue', alpha=0.5)
         plt.xlim([min_reward, max_reward])
         plt.ylim([0, max_y])
-        #plt.hist(rewards, 50, facecolor='blue', alpha=0.5)
         plt.grid(True)
         plt.savefig(output_folder + 'hist_at_' + str(i) + '.png')
+        dat.close()
 
 
 def main():
