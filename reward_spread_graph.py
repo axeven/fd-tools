@@ -14,12 +14,15 @@ from PIL import Image, ImageDraw
 class Node:
     def __init__(self, vars):
         self.vars = vars
-        self.initial_reward = 0
+        self.init_reward = 0
         self.reward = 0
         self.children = set()
         self.parents = set()
         self.duplicate = 0
         self.simulation_count = 0
+        self.init_time = 0
+        self.sim_begin = 0
+        self.sim_end = 0
 
     def __eq__(self, other):
         return self.vars == other.vars
@@ -33,7 +36,7 @@ class Node:
 
     def update_reward(self, reward):
         if self.simulation_count == 0:
-            self.initial_reward = reward
+            self.init_reward = reward
         self.reward = self.reward * self.simulation_count + reward
         self.simulation_count += 1
         self.reward /= self.simulation_count
@@ -75,15 +78,26 @@ def get_parents(existing_nodes, child_id):
 def construct_tree_from_log_file(location):
     id_pattern = re.compile(r'merged variables \{([\d\s]*)\}')
     reward_pattern = re.compile(r'Reward for this simulation: (\d+\.*\d*)')
+    patterns = [
+        re.compile(r't=(\d+\.*\d*)s \(Before recomputing FTS\)'),
+        re.compile(r't=(\d+\.*\d*)s \(After recomputing FTS\)'),
+        re.compile(r't=(\d+\.*\d*)s \(Time after simulation\)')
+    ]
     root = Node(frozenset())
     existing_nodes = {frozenset([0]): root}
     min_reward = float('inf')
     max_reward = 0
     reward_match = False
+    matches = [None] * len(patterns)
     with open(location, 'r') as f:
         for line in f:
             if not reward_match:
                 reward_match = reward_pattern.search(line)
+                for i in range(len(patterns)):
+                    match = patterns[i].search(line)
+                    if match:
+                        matches[i] = match
+                        break
             else:
                 id_match = id_pattern.search(line)
                 if id_match:
@@ -108,6 +122,9 @@ def construct_tree_from_log_file(location):
                             print(line, reward)
                             return
                         child.update_reward(reward)
+                        child.init_time = float(matches[0].group(1))
+                        child.sim_begin = float(matches[1].group(1))
+                        child.sim_end = float(matches[2].group(1))
                     reward_match = False
 
     return root, min_reward, max_reward
@@ -119,7 +136,7 @@ def print_node(node, prefix=''):
         print_node(child, prefix + ' ')
 
 
-def visualize_reward_distribution(node, min_reward, max_reward, bin_count, max_y, output_folder='./'):
+def visualize_reward_distribution(node, min_reward, max_reward, bin_count, max_y, no_sim, output_folder='./'):
     node_at_depth = []
     queue = [(node, 0)]
     while len(queue) != 0:
@@ -136,33 +153,69 @@ def visualize_reward_distribution(node, min_reward, max_reward, bin_count, max_y
     for i in range(len(node_at_depth)):
         dat_file = output_folder + 'hist_at_' + str(i) + '.dat'
         dat = open(dat_file, 'w')
-        dat.write('reward count simcount\n')
+        dat.write('reward count simcount initcount\n')
         plt.clf()
-        bin_size = (max_reward-min_reward) / bin_count
+        bin_size = (max_reward - min_reward) / bin_count
         bins = [min_reward + bin_size * i for i in range(bin_count)]
         n = [0] * bin_count
+        n_init = [0] * bin_count
         for v in node_at_depth[i]:
-            n[max(0, int(math.ceil((v.reward - min_reward)/bin_size)))] += 1
+            n[min(
+                max(0, int(math.ceil((v.reward - min_reward) / bin_size))),
+                bin_count - 1)] += 1
+            n_init[min(
+                max(0, int(math.ceil((v.init_reward - min_reward) / bin_size))),
+                bin_count - 1)] += 1
         bin_size = bins[1] - bins[0]
         child_hist = [0] * bin_count
-        if i > 0:
+        if i > 0 and not no_sim:
             child_x = [bins[0] + i * bin_size for i in range(bin_count)]
             for nd in node_at_depth[i]:
                 if bin_size == 0:
                     idx = 0
                 else:
-                    idx = max(int(math.ceil(((nd.reward - bins[0]) / bin_size))), 0)
+                    idx = min(
+                        max(int(math.ceil(((nd.reward - bins[0]) / bin_size))), 0),
+                        bin_count - 1)
                 child_hist[idx] += nd.simulation_count
             plt.bar(child_x, child_hist, bin_size, color='yellow', alpha=1)
         for j in range(bin_count):
-            dat.write("{:.6f} {:d} {:d}\n".format(bin_size*j, n[j], child_hist[j]))
-        dat.write("{:.6f} {:d} {:d}".format(bin_size * bin_count, n[j], child_hist[j]))
+            dat.write("{:.6f} {:d} {:d} {:d}\n".format(bin_size * j, n[j], child_hist[j], n_init[j]))
+        dat.write("{:.6f} {:d} {:d} {:d}".format(bin_size * bin_count, n[j], child_hist[j], n_init[j]))
         plt.bar(bins, n, bin_size, color='blue', alpha=0.5)
         plt.xlim([min_reward, max_reward])
         plt.ylim([0, max_y])
         plt.grid(True)
         plt.savefig(output_folder + 'hist_at_' + str(i) + '.png')
         dat.close()
+
+    avg_reward_at = []
+    avg_sim_at = []
+    for depth in range(len(node_at_depth)):
+        unsorted = []
+        sum = 0
+        sum_sim = 0
+        for node in node_at_depth[depth]:
+            unsorted.append((len(node.children), node))
+            sum += node.reward
+            sum_sim += node.sim_end - node.init_time
+        avg_reward_at.append((sum / len(node_at_depth[depth]), len(node_at_depth[depth])))
+        avg_sim_at.append(sum_sim / len(node_at_depth[depth]))
+        unsorted = sorted(unsorted, key= lambda x: x[0])
+        child_count_file = output_folder + 'children_at_' + str(depth) + '.child'
+        with open(child_count_file, 'w') as f:
+            for count, node in reversed(unsorted):
+                f.write(str(count)+';'+str(node.vars)+'\n')
+
+    avg_reward_file = output_folder + 'avg_stats_per_depth.out'
+    with open(avg_reward_file, 'w') as f:
+        f.write('depth nodecount avgreward avgsim\n')
+        for i in range(len(avg_reward_at)):
+            f.write("{:d} {:d} {:.6f}  {:.6f}\n".format(i, avg_reward_at[i][1], avg_reward_at[i][0], avg_sim_at[i]))
+
+
+
+
 
 
 def main():
@@ -173,6 +226,8 @@ def main():
     parser.add_argument('--max_reward', '-maxx', help='maximum in x axis', default=1, type=float)
     parser.add_argument('--bin_count', '-bin', help='histogram bin count', default=50, type=int)
     parser.add_argument('--max_y', '-maxy', help='maximum in y axis', default=100, type=int)
+    parser.add_argument('--no-sim', '-ns', help='do not draw the simulation', action='store_true', dest='no_sim')
+    parser.set_defaults(no_sim=False)
     args = parser.parse_args()
 
     if os.path.isfile(args.input_file):
@@ -195,7 +250,8 @@ def main():
             out = output_folder + '/' + file[len(args.input_file):] + '/'
         if not os.path.exists(out):
             os.makedirs(out)
-        visualize_reward_distribution(tree_root, args.min_reward, args.max_reward, args.bin_count, args.max_y, output_folder=out)
+        visualize_reward_distribution(tree_root, args.min_reward, args.max_reward, args.bin_count, args.max_y, args.no_sim,
+                                      output_folder=out)
 
 
 if __name__ == '__main__':
