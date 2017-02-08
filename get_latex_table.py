@@ -101,6 +101,7 @@ def print_data(all_data, order, separator, index):
         s += ' & ' + alg.split(separator)[index]
     print(s + ' \\\\')
 
+    sum = {}
     for row in row_order:
         s = row
         for alg in order:
@@ -108,7 +109,19 @@ def print_data(all_data, order, separator, index):
                 s += ' & ' + '{:.2f}'.format(all_data[row][alg])
             else:
                 s += ' & ' + str(all_data[row][alg])
+            if alg not in sum:
+                sum[alg] = 0
+            sum[alg] += all_data[row][alg]
+
         print(s + ' \\\\')
+
+    s = 'Total '
+    for alg in order:
+        if isinstance(sum[alg], float):
+            s += ' & ' + '{:.2f}'.format(sum[alg])
+        else:
+            s += ' & ' + str(sum[alg])
+    print(s + ' \\\\')
 
 
 def main():
@@ -132,13 +145,14 @@ def main():
     else:
         args.col_order = args.col_order.split(',')
 
-    known_types = {'str':str, 'int': int, 'float': float}
+    known_types = {'str': str, 'int': int, 'float': float}
     if args.col_split_cast not in known_types:
         print('Unknown type for casting column id')
         exit(1)
 
     data, problems = read_json_simple(args.input_file, exclude=args.exclude)
-    algo_order = algo_order_by_sub_name(data, args.col_split, args.col_split_id, known_types[args.col_split_cast], args.col_order)
+    algo_order = algo_order_by_sub_name(data, args.col_split, args.col_split_id, known_types[args.col_split_cast],
+                                        args.col_order)
     table_data = get_table_detail_per_domain(data, args.attr, problems)
     print_data(table_data, algo_order, args.col_split, args.col_split_id)
 

@@ -56,19 +56,25 @@ def create_histogram_per_algo(grouped_data, rangelist, attr):
                 if algo not in val_data:
                     val_data[algo] = []
                 val_data[algo].append(val_list[attr])
+                assert val_list['unsolvable'] == 1
     graph_data = {}
     for algo, vals in val_data.items():
-        graph_data[algo] = [0] * len(rangelist)
+        graph_data[algo] = [0] * (len(rangelist) + 1)
         for val in vals:
+            added = False
             for i in range(len(rangelist)):
                 if val < rangelist[i]:
                     graph_data[algo][i] += 1
+                    added = True
                     break
+            if not added:
+                graph_data[algo][len(rangelist)] += 1
 
     for algo, data in graph_data.items():
         print(algo)
         for i in range(len(rangelist)):
             print('<', rangelist[i], ':', data[i])
+        print('>=', rangelist[i], ':', data[len(rangelist)])
 
 
 def create_dirs_if_necessary(graph_data, OUTDIR):
