@@ -49,15 +49,21 @@ def read_json_file(json_file, attr, unsolvable_only, domain, problem, algo, quer
 
 
 def equal(a, b):
-    return a == b
+    if isinstance(a, int) or isinstance(a, float):
+        return a == float(b)
+    return str(a) == str(b)
 
 
 def lte(a, b):
-    return a <= b
+    if isinstance(a, int) or isinstance(a, float):
+        return a <= float(b)
+    return str(a) <= str(b)
 
 
 def gte(a, b):
-    return a >= b
+    if isinstance(a, int) or isinstance(a, float):
+        return a >= float(b)
+    return str(a) >= str(b)
 
 
 def parse_query(query_string):
