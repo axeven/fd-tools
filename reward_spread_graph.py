@@ -99,7 +99,8 @@ def construct_tree_from_log_file(location):
     patterns = [
         re.compile(r't=(\d+\.*\d*)s \(Before recomputing FTS\)'),
         re.compile(r't=(\d+\.*\d*)s \(After recomputing FTS\)'),
-        re.compile(r't=(\d+\.*\d*)s \(Time after simulation\)')
+        re.compile(r't=(\d+\.*\d*)s \(Time after simulation\)'),
+        re.compile(r'Total time: (\d+\.*\d*)s'),
     ]
     root = Node(frozenset())
     existing_nodes = {frozenset([0]): root}
@@ -108,6 +109,8 @@ def construct_tree_from_log_file(location):
     reward_match = False
     matches = [None] * len(patterns)
     max_depth = 0
+    solved_by_ms_time = 0
+    last_sim_time = 0
     with open(location, 'r') as f:
         for line in f:
             if not reward_match:
@@ -116,6 +119,10 @@ def construct_tree_from_log_file(location):
                     match = patterns[i].search(line)
                     if match:
                         matches[i] = match
+                        if i == 2:
+                            last_sim_time = float(match.group(1))
+                        elif i == 3:
+                            solved_by_ms_time = float(match.group(1))
                         break
             else:
                 id_match = id_pattern.search(line)
@@ -150,7 +157,10 @@ def construct_tree_from_log_file(location):
                             print('depth', max_depth, 'reached')
                     reward_match = False
 
-    return root, min_reward, max_reward
+    ms_time = 0
+    if solved_by_ms_time > 0:
+        ms_time = solved_by_ms_time - last_sim_time
+    return root, min_reward, max_reward, ms_time
 
 
 def print_node(node, prefix=''):
@@ -271,7 +281,9 @@ def main():
         output_folder += '/'
     for file in input_files:
         print('processing', file, '...')
-        tree_root, min_reward, max_reward = construct_tree_from_log_file(file)
+        tree_root, min_reward, max_reward, ms_time = construct_tree_from_log_file(file)
+        if ms_time > 0:
+            print('ms_time', ms_time)
         # print_node(tree_root)
         if len(input_files) == 1:
             out = output_folder
