@@ -1,0 +1,59 @@
+{
+  "base_unsat-bag-barman-prob01.pddl": {
+    "abstraction_peak_memory": 4015380,
+    "algorithm_nick": "base_unsat",
+    "id": [
+      "base_unsat",
+      "bag-barman",
+      "prob01.pddl"
+    ],
+    "id_string": "base_unsat:bag-barman:prob01.pddl",
+    "unsolvable": 0,
+    "var_count": 164,
+    "var_merged_last": 22,
+    "var_merged_max": 22,
+    "dummy_attr": 1
+  },
+  "base_unsat-bag-barman-prob02.pddl": {
+    "abstraction_peak_memory": 401538,
+    "algorithm_nick": "base_unsat",
+    "id": [
+      "base_unsat",
+      "bag-barman",
+      "prob02.pddl"
+    ],
+    "id_string": "base_unsat:bag-barman:prob02.pddl",
+    "unsolvable": 1,
+    "var_count": 16,
+    "var_merged_last": 2,
+    "var_merged_max": 2
+  },
+  "base_unsat-bag-gripper-prob01.pddl": {
+    "abstraction_peak_memory": 401580,
+    "algorithm_nick": "base_unsat",
+    "id": [
+      "base_unsat",
+      "bag-gripper",
+      "prob01.pddl"
+    ],
+    "id_string": "base_unsat:bag-gripper:prob01.pddl",
+    "unsolvable": 1,
+    "var_count": 14,
+    "var_merged_last": 5,
+    "var_merged_max": 7
+  },
+  "rave-bag-gripper-prob01.pddl": {
+    "abstraction_peak_memory": 401530,
+    "algorithm_nick": "rave",
+    "id": [
+      "rave",
+      "bag-gripper",
+      "prob01.pddl"
+    ],
+    "id_string": "rave:bag-gripper:prob01.pddl",
+    "unsolvable": 1,
+    "var_count": 14,
+    "var_merged_last": 5,
+    "var_merged_max": 8
+  }
+}
